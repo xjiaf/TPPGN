@@ -5,14 +5,14 @@
 module load libs/cuda/11.7.0
 
 # Copy a directory of files from scratch to the GPU node's local NVMe storage
-cp -r ~/scratch/papers/PINT/ $TMPDIR
+cp -r ~/scratch/papers/ptgn/ $TMPDIR
 
 # Process the data with a GPU app, from within the local NVMe storage area
-cd $TMPDIR/PINT/
-python train.py --data wikipedia --n_layer 2 --use_memory --beta 0.0001 --n_epoch 50 --patience 5 --n_runs 10 --n_degree 10 --memory_dim 172
+cd $TMPDIR/ptgn/
+python utils/preprocess_data.py --data reddit --bipartite
 
 # Copy the results back to the main scratch area
-mv $TMPDIR/PINT/ ~/scratch/papers/PINT/
+mv $TMPDIR/ptgn/ ~/scratch/papers/
 
 # The batch system will automatically delete the contents of $TMPDIR at the end of your job.
 
