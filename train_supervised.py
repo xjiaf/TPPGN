@@ -1,3 +1,4 @@
+import os
 import math
 import logging
 import time
@@ -101,6 +102,10 @@ get_checkpoint_path = lambda \
   node-classification.pth'
 
 ### set up logger
+log_directory = 'log'
+if not os.path.exists(log_directory):
+    os.makedirs(log_directory)
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
@@ -155,7 +160,7 @@ for i in range(args.n_runs):
 
   num_instance = len(train_data.sources)
   num_batch = math.ceil(num_instance / BATCH_SIZE)
-  
+
   logger.debug('Num of training instances: {}'.format(num_instance))
   logger.debug('Num of batches per epoch: {}'.format(num_batch))
 
@@ -177,7 +182,7 @@ for i in range(args.n_runs):
   early_stopper = EarlyStopMonitor(max_round=args.patience)
   for epoch in range(args.n_epoch):
     start_epoch = time.time()
-    
+
     # Initialize memory of the model at each epoch
     if USE_MEMORY:
       tgn.memory.__init_memory__()
@@ -185,7 +190,7 @@ for i in range(args.n_runs):
     tgn = tgn.eval()
     decoder = decoder.train()
     loss = 0
-    
+
     for k in range(num_batch):
       s_idx = k * BATCH_SIZE
       e_idx = min(num_instance, s_idx + BATCH_SIZE)
@@ -227,7 +232,7 @@ for i in range(args.n_runs):
     }, open(results_path, "wb"))
 
     logger.info(f'Epoch {epoch}: train loss: {loss / num_batch}, val auc: {val_auc}, time: {time.time() - start_epoch}')
-  
+
   if args.use_validation:
     if early_stopper.early_stop_check(val_auc):
       logger.info('No improvement over {} epochs, stop training'.format(early_stopper.max_round))
@@ -248,7 +253,7 @@ for i in range(args.n_runs):
     # If we are not using a validation set, the test performance is just the performance computed
     # in the last epoch
     test_auc = val_aucs[-1]
-    
+
   pickle.dump({
     "val_aps": val_aucs,
     "test_ap": test_auc,

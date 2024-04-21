@@ -1,5 +1,6 @@
 import math
 import logging
+import os
 import time
 import sys
 import argparse
@@ -93,6 +94,10 @@ get_checkpoint_path = lambda \
     epoch: f'./saved_checkpoints/{args.prefix}-{args.data}-{epoch}.pth'
 
 ### set up logger
+log_directory = 'log'
+if not os.path.exists(log_directory):
+    os.makedirs(log_directory)
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
