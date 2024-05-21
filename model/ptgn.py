@@ -12,9 +12,9 @@ from modules.embedding_module import get_embedding_module
 from model.time_encoding import TimeEncode
 
 
-class TGN(torch.nn.Module):
+class PTGN(torch.nn.Module):
   def __init__(self, neighbor_finder, node_features, edge_features, device, n_layers=2,
-               n_heads=2, dropout=0.1, use_memory=False, use_position=False,
+               n_heads=2, dropout=0.1, use_memory=False,
                memory_update_at_start=True, message_dimension=100,
                memory_dimension=500, embedding_module_type="graph_attention",
                message_function="mlp",
@@ -23,8 +23,10 @@ class TGN(torch.nn.Module):
                memory_updater_type="gru",
                use_destination_embedding_in_message=False,
                use_source_embedding_in_message=False,
-               dyrep=False):
-    super(TGN, self).__init__()
+               dyrep=False,
+               use_position=False,
+               position_embedding_dim=32):
+    super(PTGN, self).__init__()
 
     self.n_layers = n_layers
     self.neighbor_finder = neighbor_finder
@@ -54,6 +56,9 @@ class TGN(torch.nn.Module):
     self.std_time_shift_dst = std_time_shift_dst
 
     self.use_position = use_position
+    if use_position:
+      self.position_embedding_dim = position_embedding_dim
+      self.position_embedding = torch.nn.Embedding(num_embeddings=self.n_nodes, embedding_dim=position_embedding_dim)
 
     if self.use_memory:
       self.memory_dimension = memory_dimension
@@ -77,6 +82,26 @@ class TGN(torch.nn.Module):
                                                memory_dimension=self.memory_dimension,
                                                device=device)
 
+      if self.use_position:
+        self.memory_position_demension = self.position_embedding_dim
+        raw_position_message_dimension = 2 * self.memory_position_demension + self.n_edge_features + \
+                                          self.time_encoder.dimension
+        position_message_dimension = message_dimension if message_function != "identity" else raw_position_message_dimension
+        self.position_memory = Memory(n_nodes=self.n_nodes,
+                                      memory_dimension=self.memory_position_demension,
+                                      input_dimension=position_message_dimension,
+                                      message_dimension=position_message_dimension,
+                                      device=device)
+        self.position_message_aggregator = get_message_aggregator(aggregator_type=aggregator_type,
+                                                                  device=device)
+        self.position_message_function = get_message_function(module_type=message_function,
+                                                              raw_message_dimension=raw_position_message_dimension,
+                                                              message_dimension=position_message_dimension)
+        self.position_memory_updater = get_memory_updater(module_type=memory_updater_type,
+                                                          memory=self.position_memory,
+                                                          message_dimension=position_message_dimension,
+                                                          memory_dimension=self.memory_position_demension,
+                                                          device=device)
     self.embedding_module_type = embedding_module_type
 
     self.embedding_module = get_embedding_module(module_type=embedding_module_type,
@@ -93,7 +118,9 @@ class TGN(torch.nn.Module):
                                                  device=self.device,
                                                  n_heads=n_heads, dropout=dropout,
                                                  use_memory=use_memory,
-                                                 n_neighbors=self.n_neighbors)
+                                                 n_neighbors=self.n_neighbors,
+                                                 use_position=use_position,
+                                                 position_embedding_dim=position_embedding_dim)
 
     # MLP to compute probability on an edge given two node embeddings
     self.affinity_score = MergeLayer(self.n_node_features, self.n_node_features,
@@ -122,14 +149,20 @@ class TGN(torch.nn.Module):
 
     memory = None
     time_diffs = None
+    position_memory = None
     if self.use_memory:
       if self.memory_update_at_start:
         # Update memory for all nodes with messages stored in previous batches
         memory, last_update = self.get_updated_memory(list(range(self.n_nodes)),
                                                       self.memory.messages)
+        if self.use_position:
+          position_memory, _ = self.get_updated_memory(list(range(self.n_nodes)),
+                                                      self.position_memory.messages)
       else:
         memory = self.memory.get_memory(list(range(self.n_nodes)))
         last_update = self.memory.last_update
+        if self.use_position:
+          position_memory = self.position_memory.get_memory(list(range(self.n_nodes)))
 
       ### Compute differences between the time the memory of a node was last updated,
       ### and the time for which we want to compute the embedding of a node
@@ -152,7 +185,8 @@ class TGN(torch.nn.Module):
                                                              timestamps=timestamps,
                                                              n_layers=self.n_layers,
                                                              n_neighbors=n_neighbors,
-                                                             time_diffs=time_diffs)
+                                                             time_diffs=time_diffs,
+                                                             position_memory=position_memory)
 
     source_node_embedding = node_embedding[:n_samples]
     destination_node_embedding = node_embedding[n_samples: 2 * n_samples]
