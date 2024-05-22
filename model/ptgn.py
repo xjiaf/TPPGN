@@ -95,7 +95,7 @@ class PTGN(torch.nn.Module):
                                       device=device)
         self.position_message_aggregator = get_message_aggregator(aggregator_type="last",
                                                                   device=device)
-        self.position_message_function = get_message_function(module_type="identity",
+        self.position_message_function = get_message_function(module_type=message_function,
                                                               raw_message_dimension=raw_position_message_dimension,
                                                               message_dimension=position_message_dimension)
         self.position_memory_updater = get_memory_updater(module_type=memory_updater_type,
@@ -160,12 +160,21 @@ class PTGN(torch.nn.Module):
     position_memory = None
     if self.use_memory:
       if self.memory_update_at_start:
+        print("aaaaa")
         # Update memory for all nodes with messages stored in previous batches
+        # print(f"memory: {self.memory.messages}")
         memory, last_update = self.get_updated_memory(list(range(self.n_nodes)),
                                                       self.memory.messages)
         if self.use_position:
-          position_memory, _ = self.get_updated_memory(list(range(self.n_nodes)),
-                                                      self.position_memory.messages)
+          # print(f"position_memory: {self.position_memory.messages}")
+          position_memory, last_pos_update = self.get_updated_position_memory(list(range(self.n_nodes)),
+                                                                self.position_memory.messages)
+        if (last_pos_update != last_update).any():
+          mask = last_pos_update != last_update
+          print(f"mask: {mask.sum()}")
+
+          print(f"last_pos_update: {last_pos_update}")
+          print(f"last_update: {last_update}")
       else:
         memory = self.memory.get_memory(list(range(self.n_nodes)))
         last_update = self.memory.last_update
@@ -226,11 +235,10 @@ class PTGN(torch.nn.Module):
         self.memory.clear_messages(positives)
 
         if self.use_position:
-          self.update_memory(positives, self.position_memory.messages)
+          self.update_position_memory(positives, self.position_memory.messages)
           assert torch.allclose(position_memory[positives], self.position_memory.get_memory(positives), atol=1e-5), \
             "Something wrong in how the position memory was updated"
 
-          # Remove messages for the positives since we have already updated the memory using them
           self.position_memory.clear_messages(positives)
 
       unique_sources, source_id_to_messages = self.get_raw_messages(source_nodes,
@@ -245,16 +253,17 @@ class PTGN(torch.nn.Module):
                                                                               edge_times, edge_idxs)
 
       if self.use_position:
-        unique_position_sources, source_id_to_position_messages = self.get_raw_messages(source_nodes,
-                                                                                        source_position_embedding,
-                                                                                        destination_nodes,
-                                                                                        destination_position_embedding,
-                                                                                        edge_times, edge_idxs)
-        unique_position_destinations, destination_id_to_position_messages = self.get_raw_messages(destination_nodes,
-                                                                                                  destination_position_embedding,
-                                                                                                  source_nodes,
-                                                                                                  source_position_embedding,
-                                                                                                  edge_times, edge_idxs)
+        unique_position_sources, source_id_to_position_messages = self.get_raw_position_messages(source_nodes,
+                                                                                                 source_position_embedding,
+                                                                                                 destination_nodes,
+                                                                                                 destination_position_embedding,
+                                                                                                 edge_times, edge_idxs)
+        unique_position_destinations, destination_id_to_position_messages = self.get_raw_position_messages(
+          destination_nodes,
+          destination_position_embedding,
+          source_nodes,
+          source_position_embedding,
+          edge_times, edge_idxs)
 
       if self.memory_update_at_start:
         self.memory.store_raw_messages(unique_sources, source_id_to_messages)
@@ -268,8 +277,8 @@ class PTGN(torch.nn.Module):
         self.update_memory(unique_destinations, destination_id_to_messages)
 
         if self.use_position:
-          self.update_memory(unique_position_sources, source_id_to_position_messages)
-          self.update_memory(unique_position_destinations, destination_id_to_position_messages)
+          self.update_position_memory(unique_position_sources, source_id_to_position_messages)
+          self.update_position_memory(unique_position_destinations, destination_id_to_position_messages)
 
       if self.dyrep:
         if self.use_position:
@@ -371,3 +380,58 @@ class PTGN(torch.nn.Module):
   def set_neighbor_finder(self, neighbor_finder):
     self.neighbor_finder = neighbor_finder
     self.embedding_module.neighbor_finder = neighbor_finder
+
+  def update_position_memory(self, nodes, messages):
+    # Aggregate messages for the same nodes
+    unique_nodes, unique_messages, unique_timestamps = \
+      self.position_message_aggregator.aggregate(
+        nodes,
+        messages)
+
+    if len(unique_nodes) > 0:
+      unique_messages = self.position_message_function.compute_message(unique_messages)
+
+    # Update the memory with the aggregated messages
+    self.position_memory_updater.update_memory(unique_nodes, unique_messages,
+                                              timestamps=unique_timestamps)
+
+  def get_updated_position_memory(self, nodes, messages):
+    # Aggregate messages for the same nodes
+    unique_nodes, unique_messages, unique_timestamps = \
+      self.position_message_aggregator.aggregate(
+        nodes,
+        messages)
+
+    if len(unique_nodes) > 0:
+      unique_messages = self.position_message_function.compute_message(unique_messages)
+
+    updated_memory, updated_last_update = self.position_memory_updater.get_updated_memory(unique_nodes,
+                                                                                         unique_messages,
+                                                                                         timestamps=unique_timestamps)
+
+    return updated_memory, updated_last_update
+
+  def get_raw_position_messages(self, source_nodes, source_node_embedding, destination_nodes,
+                               destination_node_embedding, edge_times, edge_idxs):
+    edge_times = torch.from_numpy(edge_times).float().to(self.device)
+    edge_features = self.edge_raw_features[edge_idxs]
+
+    source_memory = self.position_memory.get_memory(source_nodes) if not \
+      self.use_source_embedding_in_message else source_node_embedding
+    destination_memory = self.position_memory.get_memory(destination_nodes) if \
+      not self.use_destination_embedding_in_message else destination_node_embedding
+
+    source_time_delta = edge_times - self.position_memory.last_update[source_nodes]
+    source_time_delta_encoding = self.time_encoder(source_time_delta.unsqueeze(dim=1)).view(len(
+      source_nodes), -1)
+
+    source_message = torch.cat([source_memory, destination_memory, edge_features,
+                                source_time_delta_encoding],
+                               dim=1)
+    messages = defaultdict(list)
+    unique_sources = np.unique(source_nodes)
+
+    for i in range(len(source_nodes)):
+      messages[source_nodes[i]].append((source_message[i], edge_times[i]))
+
+    return unique_sources, messages
