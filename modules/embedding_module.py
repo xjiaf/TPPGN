@@ -322,7 +322,8 @@ class PositionEmbedding(GraphEmbedding):
                                         neighbor_embeddings,
                                         edge_time_embeddings,
                                         edge_features,
-                                        mask)
+                                        mask,
+                                        edge_deltas_torch)
 
       return source_embedding
 
@@ -334,7 +335,7 @@ class PositionEmbedding(GraphEmbedding):
     source_features_embedding = self.node_embedding_module.aggregate(
       n_layer, source_node_features[:, :self.embedding_dimension],
       source_nodes_time_embedding,
-      neighbor_embeddings,
+      neighbor_embeddings[:, :, :self.embedding_dimension],
       edge_time_embeddings,
       edge_features,
       mask)

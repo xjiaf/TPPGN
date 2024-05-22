@@ -87,14 +87,15 @@ class PTGN(torch.nn.Module):
         raw_position_message_dimension = 2 * self.memory_position_demension + self.n_edge_features + \
                                           self.time_encoder.dimension
         position_message_dimension = raw_position_message_dimension
+
         self.position_memory = Memory(n_nodes=self.n_nodes,
                                       memory_dimension=self.memory_position_demension,
                                       input_dimension=position_message_dimension,
                                       message_dimension=position_message_dimension,
                                       device=device)
-        self.position_message_aggregator = get_message_aggregator(aggregator_type=aggregator_type,
+        self.position_message_aggregator = get_message_aggregator(aggregator_type="last",
                                                                   device=device)
-        self.position_message_function = get_message_function(module_type=message_function,
+        self.position_message_function = get_message_function(module_type="identity",
                                                               raw_message_dimension=raw_position_message_dimension,
                                                               message_dimension=position_message_dimension)
         self.position_memory_updater = get_memory_updater(module_type=memory_updater_type,
@@ -279,10 +280,11 @@ class PTGN(torch.nn.Module):
           source_node_embedding = memory[source_nodes]
           destination_node_embedding = memory[destination_nodes]
           negative_node_embedding = memory[negative_nodes]
-      elif self.use_position:
-        source_node_embedding = node_embedding[:n_samples]
-        destination_node_embedding = node_embedding[n_samples: 2 * n_samples]
-        negative_node_embedding = node_embedding[2 * n_samples:]
+        return source_node_embedding, destination_node_embedding, negative_node_embedding
+
+    source_node_embedding = node_embedding[:n_samples]
+    destination_node_embedding = node_embedding[n_samples: 2 * n_samples]
+    negative_node_embedding = node_embedding[2 * n_samples:]
 
     return source_node_embedding, destination_node_embedding, negative_node_embedding
 
@@ -309,7 +311,6 @@ class PTGN(torch.nn.Module):
                                            negative_node_embedding])).squeeze(dim=0)
     pos_score = score[:n_samples]
     neg_score = score[n_samples:]
-
     return pos_score.sigmoid(), neg_score.sigmoid()
 
   def update_memory(self, nodes, messages):
