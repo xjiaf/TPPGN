@@ -233,7 +233,7 @@ class PositionEmbedding(GraphEmbedding):
                n_time_features, embedding_dimension, device, num_nodes: int,
                n_heads=2, dropout=0.1, use_memory=True,
                node_embedding_module=None, alpha=2.0, beta=0.1,
-               position_embedding_dim=32):
+               position_embedding_dim=100):
       super(PositionEmbedding, self).__init__(node_features, edge_features, memory,
                                               neighbor_finder, time_encoder, n_layers,
                                               n_node_features, n_edge_features,
@@ -363,7 +363,7 @@ def get_embedding_module(module_type, node_features, edge_features,
                          embedding_dimension, device,
                          n_heads=2, dropout=0.1, n_neighbors=None,
                          use_memory=True, use_position=False,
-                         position_embedding_dim=16):
+                         position_embedding_dim=100):
 
   if module_type == "graph_attention":
     module = GraphAttentionEmbedding(node_features=node_features,

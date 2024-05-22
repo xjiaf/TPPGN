@@ -11,6 +11,7 @@ from pathlib import Path
 
 from evaluation.evaluation import eval_edge_prediction
 from model.tgn import TGN
+from model.ptgn import PTGN
 from utils.utils import EarlyStopMonitor, RandEdgeSampler, get_neighbor_finder
 from utils.data_processing import get_data, compute_time_statistics
 
@@ -63,6 +64,9 @@ parser.add_argument('--use_source_embedding_in_message', action='store_true',
                     help='Whether to use the embedding of the source node as part of the message')
 parser.add_argument('--dyrep', action='store_true',
                     help='Whether to run the dyrep model')
+parser.add_argument('--use_position', '-p', action='store_true', help='Whether to use position encoding')
+parser.add_argument('--position_embedding_dim', type=int, default=100, help='Dimensions of the position encoding')
+
 
 
 try:
@@ -86,6 +90,7 @@ TIME_DIM = args.time_dim
 USE_MEMORY = args.use_memory
 MESSAGE_DIM = args.message_dim
 MEMORY_DIM = args.memory_dim
+POSITION_DIM = args.position_embedding_dim
 
 Path("./saved_models/").mkdir(parents=True, exist_ok=True)
 Path("./saved_checkpoints/").mkdir(parents=True, exist_ok=True)
@@ -149,22 +154,40 @@ for i in range(args.n_runs):
   Path("results/").mkdir(parents=True, exist_ok=True)
 
   # Initialize Model
-  tgn = TGN(neighbor_finder=train_ngh_finder, node_features=node_features,
-            edge_features=edge_features, device=device,
-            n_layers=NUM_LAYER,
-            n_heads=NUM_HEADS, dropout=DROP_OUT, use_memory=USE_MEMORY,
-            message_dimension=MESSAGE_DIM, memory_dimension=MEMORY_DIM,
-            memory_update_at_start=not args.memory_update_at_end,
-            embedding_module_type=args.embedding_module,
-            message_function=args.message_function,
-            aggregator_type=args.aggregator,
-            memory_updater_type=args.memory_updater,
-            n_neighbors=NUM_NEIGHBORS,
-            mean_time_shift_src=mean_time_shift_src, std_time_shift_src=std_time_shift_src,
-            mean_time_shift_dst=mean_time_shift_dst, std_time_shift_dst=std_time_shift_dst,
-            use_destination_embedding_in_message=args.use_destination_embedding_in_message,
-            use_source_embedding_in_message=args.use_source_embedding_in_message,
-            dyrep=args.dyrep)
+  # tgn = TGN(neighbor_finder=train_ngh_finder, node_features=node_features,
+  #           edge_features=edge_features, device=device,
+  #           n_layers=NUM_LAYER,
+  #           n_heads=NUM_HEADS, dropout=DROP_OUT, use_memory=USE_MEMORY,
+  #           message_dimension=MESSAGE_DIM, memory_dimension=MEMORY_DIM,
+  #           memory_update_at_start=not args.memory_update_at_end,
+  #           embedding_module_type=args.embedding_module,
+  #           message_function=args.message_function,
+  #           aggregator_type=args.aggregator,
+  #           memory_updater_type=args.memory_updater,
+  #           n_neighbors=NUM_NEIGHBORS,
+  #           mean_time_shift_src=mean_time_shift_src, std_time_shift_src=std_time_shift_src,
+  #           mean_time_shift_dst=mean_time_shift_dst, std_time_shift_dst=std_time_shift_dst,
+  #           use_destination_embedding_in_message=args.use_destination_embedding_in_message,
+  #           use_source_embedding_in_message=args.use_source_embedding_in_message,
+  #           dyrep=args.dyrep)
+  tgn = PTGN(neighbor_finder=train_ngh_finder, node_features=node_features,
+             edge_features=edge_features, device=device,
+             n_layers=NUM_LAYER,
+             n_heads=NUM_HEADS, dropout=DROP_OUT, use_memory=USE_MEMORY,
+             message_dimension=MESSAGE_DIM, memory_dimension=MEMORY_DIM,
+             memory_update_at_start=not args.memory_update_at_end,
+             embedding_module_type=args.embedding_module,
+             message_function=args.message_function,
+             aggregator_type=args.aggregator,
+             memory_updater_type=args.memory_updater,
+             n_neighbors=NUM_NEIGHBORS,
+             mean_time_shift_src=mean_time_shift_src, std_time_shift_src=std_time_shift_src,
+             mean_time_shift_dst=mean_time_shift_dst, std_time_shift_dst=std_time_shift_dst,
+             use_destination_embedding_in_message=args.use_destination_embedding_in_message,
+             use_source_embedding_in_message=args.use_source_embedding_in_message,
+             dyrep=args.dyrep,
+             use_position=args.use_position,
+             position_embedding_dim=POSITION_DIM)
   criterion = torch.nn.BCELoss()
   optimizer = torch.optim.Adam(tgn.parameters(), lr=LEARNING_RATE)
   tgn = tgn.to(device)

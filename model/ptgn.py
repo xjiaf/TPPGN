@@ -25,7 +25,7 @@ class PTGN(torch.nn.Module):
                use_source_embedding_in_message=False,
                dyrep=False,
                use_position=False,
-               position_embedding_dim=32):
+               position_embedding_dim=100):
     super(PTGN, self).__init__()
 
     self.n_layers = n_layers
@@ -58,7 +58,7 @@ class PTGN(torch.nn.Module):
     self.use_position = use_position
     if use_position:
       self.position_embedding_dim = position_embedding_dim
-      self.position_embedding = torch.nn.Embedding(num_embeddings=self.n_nodes, embedding_dim=position_embedding_dim)
+      # self.position_embedding = torch.nn.Embedding(num_embeddings=self.n_nodes, embedding_dim=position_embedding_dim)
 
     if self.use_memory:
       self.memory_dimension = memory_dimension
@@ -86,7 +86,7 @@ class PTGN(torch.nn.Module):
         self.memory_position_demension = self.position_embedding_dim
         raw_position_message_dimension = 2 * self.memory_position_demension + self.n_edge_features + \
                                           self.time_encoder.dimension
-        position_message_dimension = message_dimension if message_function != "identity" else raw_position_message_dimension
+        position_message_dimension = raw_position_message_dimension
         self.position_memory = Memory(n_nodes=self.n_nodes,
                                       memory_dimension=self.memory_position_demension,
                                       input_dimension=position_message_dimension,
@@ -123,9 +123,16 @@ class PTGN(torch.nn.Module):
                                                  position_embedding_dim=position_embedding_dim)
 
     # MLP to compute probability on an edge given two node embeddings
-    self.affinity_score = MergeLayer(self.n_node_features, self.n_node_features,
-                                     self.n_node_features,
-                                     1)
+    if use_position:
+      self.affinity_score = MergeLayer(self.n_node_features + self.position_embedding_dim,
+                                       self.n_node_features + self.position_embedding_dim,
+                                       self.n_node_features + self.position_embedding_dim,
+                                       1)
+    else:
+      self.affinity_score = MergeLayer(self.n_node_features,
+                                       self.n_node_features,
+                                       self.n_node_features,
+                                       1)
 
   def compute_temporal_embeddings(self, source_nodes, destination_nodes, negative_nodes, edge_times,
                                   edge_idxs, n_neighbors=20):
@@ -180,17 +187,30 @@ class PTGN(torch.nn.Module):
                              dim=0)
 
     # Compute the embeddings using the embedding module
-    node_embedding = self.embedding_module.compute_embedding(memory=memory,
-                                                             source_nodes=nodes,
-                                                             timestamps=timestamps,
-                                                             n_layers=self.n_layers,
-                                                             n_neighbors=n_neighbors,
-                                                             time_diffs=time_diffs,
-                                                             position_memory=position_memory)
+    if self.use_position:
+      node_embedding = self.embedding_module.compute_embedding(memory=memory,
+                                                              source_nodes=nodes,
+                                                              timestamps=timestamps,
+                                                              n_layers=self.n_layers,
+                                                              n_neighbors=n_neighbors,
+                                                              time_diffs=time_diffs,
+                                                              position_memory=position_memory)
 
-    source_node_embedding = node_embedding[:n_samples]
-    destination_node_embedding = node_embedding[n_samples: 2 * n_samples]
-    negative_node_embedding = node_embedding[2 * n_samples:]
+      source_node_embedding = node_embedding[:n_samples, :self.embedding_dimension]
+      destination_node_embedding = node_embedding[n_samples: 2 * n_samples, :self.embedding_dimension]
+      negative_node_embedding = node_embedding[2 * n_samples:, :self.embedding_dimension]
+      source_position_embedding = node_embedding[:n_samples, self.embedding_dimension:]
+      destination_position_embedding = node_embedding[n_samples: 2 * n_samples, self.embedding_dimension:]
+    else:
+      node_embedding = self.embedding_module.compute_embedding(memory=memory,
+                                                              source_nodes=nodes,
+                                                              timestamps=timestamps,
+                                                              n_layers=self.n_layers,
+                                                              n_neighbors=n_neighbors,
+                                                              time_diffs=time_diffs)
+      source_node_embedding = node_embedding[:n_samples]
+      destination_node_embedding = node_embedding[n_samples: 2 * n_samples]
+      negative_node_embedding = node_embedding[2 * n_samples:]
 
     if self.use_memory:
       if self.memory_update_at_start:
@@ -204,6 +224,14 @@ class PTGN(torch.nn.Module):
         # Remove messages for the positives since we have already updated the memory using them
         self.memory.clear_messages(positives)
 
+        if self.use_position:
+          self.update_memory(positives, self.position_memory.messages)
+          assert torch.allclose(position_memory[positives], self.position_memory.get_memory(positives), atol=1e-5), \
+            "Something wrong in how the position memory was updated"
+
+          # Remove messages for the positives since we have already updated the memory using them
+          self.position_memory.clear_messages(positives)
+
       unique_sources, source_id_to_messages = self.get_raw_messages(source_nodes,
                                                                     source_node_embedding,
                                                                     destination_nodes,
@@ -214,17 +242,47 @@ class PTGN(torch.nn.Module):
                                                                               source_nodes,
                                                                               source_node_embedding,
                                                                               edge_times, edge_idxs)
+
+      if self.use_position:
+        unique_position_sources, source_id_to_position_messages = self.get_raw_messages(source_nodes,
+                                                                                        source_position_embedding,
+                                                                                        destination_nodes,
+                                                                                        destination_position_embedding,
+                                                                                        edge_times, edge_idxs)
+        unique_position_destinations, destination_id_to_position_messages = self.get_raw_messages(destination_nodes,
+                                                                                                  destination_position_embedding,
+                                                                                                  source_nodes,
+                                                                                                  source_position_embedding,
+                                                                                                  edge_times, edge_idxs)
+
       if self.memory_update_at_start:
         self.memory.store_raw_messages(unique_sources, source_id_to_messages)
         self.memory.store_raw_messages(unique_destinations, destination_id_to_messages)
+
+        if self.use_position:
+          self.position_memory.store_raw_messages(unique_position_sources, source_id_to_position_messages)
+          self.position_memory.store_raw_messages(unique_position_destinations, destination_id_to_position_messages)
       else:
         self.update_memory(unique_sources, source_id_to_messages)
         self.update_memory(unique_destinations, destination_id_to_messages)
 
+        if self.use_position:
+          self.update_memory(unique_position_sources, source_id_to_position_messages)
+          self.update_memory(unique_position_destinations, destination_id_to_position_messages)
+
       if self.dyrep:
-        source_node_embedding = memory[source_nodes]
-        destination_node_embedding = memory[destination_nodes]
-        negative_node_embedding = memory[negative_nodes]
+        if self.use_position:
+          source_node_embedding = torch.cat([memory[source_nodes], position_memory[source_nodes]], dim=1)
+          destination_node_embedding = torch.cat([memory[destination_nodes], position_memory[destination_nodes]], dim=1)
+          negative_node_embedding = torch.cat([memory[negative_nodes], position_memory[negative_nodes]], dim=1)
+        else:
+          source_node_embedding = memory[source_nodes]
+          destination_node_embedding = memory[destination_nodes]
+          negative_node_embedding = memory[negative_nodes]
+      elif self.use_position:
+        source_node_embedding = node_embedding[:n_samples]
+        destination_node_embedding = node_embedding[n_samples: 2 * n_samples]
+        negative_node_embedding = node_embedding[2 * n_samples:]
 
     return source_node_embedding, destination_node_embedding, negative_node_embedding
 
