@@ -53,8 +53,8 @@ def get_data(dataset_name, different_new_nodes_between_val_and_test=False, rando
   ### Load data and train val test split
   graph_df = pd.read_csv('./data/ml_{}.csv'.format(dataset_name))
   edge_features = np.load('./data/ml_{}.npy'.format(dataset_name))
-  node_features = np.load('./data/ml_{}_node.npy'.format(dataset_name)) 
-    
+  node_features = np.load('./data/ml_{}_node.npy'.format(dataset_name))
+
   if randomize_features:
     node_features = np.random.rand(node_features.shape[0], node_features.shape[1])
 
@@ -78,7 +78,8 @@ def get_data(dataset_name, different_new_nodes_between_val_and_test=False, rando
     set(destinations[timestamps > val_time]))
   # Sample nodes which we keep as new nodes (to test inductiveness), so than we have to remove all
   # their edges from training
-  new_test_node_set = set(random.sample(test_node_set, int(0.1 * n_total_unique_nodes)))
+  # new_test_node_set = set(random.sample(test_node_set, int(0.1 * n_total_unique_nodes)))
+  new_test_node_set = set(random.sample(list(test_node_set), int(0.1 * n_total_unique_nodes)))
 
   # Mask saying for each source and destination whether they are new test nodes
   new_test_source_mask = graph_df.u.map(lambda x: x in new_test_node_set).values
