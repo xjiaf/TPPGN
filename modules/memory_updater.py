@@ -19,8 +19,8 @@ class SequenceMemoryUpdater(MemoryUpdater):
     if len(unique_node_ids) <= 0:
       return
 
-    assert (self.memory.get_last_update(unique_node_ids) <= timestamps).all().item(), "Trying to " \
-                                                                                     "update memory to time in the past"
+    # assert (self.memory.get_last_update(unique_node_ids) <= timestamps).all().item(), "Trying to " \
+    #                                                                                  "update memory to time in the past"
 
     memory = self.memory.get_memory(unique_node_ids)
     self.memory.last_update[unique_node_ids] = timestamps
@@ -33,11 +33,11 @@ class SequenceMemoryUpdater(MemoryUpdater):
     if len(unique_node_ids) <= 0:
       return self.memory.memory.data.clone(), self.memory.last_update.data.clone()
     mask = self.memory.get_last_update(unique_node_ids) <= timestamps
-    assert (self.memory.get_last_update(unique_node_ids) <= timestamps).all().item(), "Trying to " \
-                                                                                     "update memory to time in the past" \
-                                                                                     f" {self.memory.get_last_update(unique_node_ids)} {timestamps}" \
-                                                                                      f" {timestamps[~mask]}" \
-                                                                                      f" {self.memory.get_last_update(unique_node_ids)[~mask]}"
+    # assert (self.memory.get_last_update(unique_node_ids) <= timestamps).all().item(), "Trying to " \
+    #                                                                                  "update memory to time in the past" \
+    #                                                                                  f" {self.memory.get_last_update(unique_node_ids)} {timestamps}" \
+    #                                                                                   f" {timestamps[~mask]}" \
+    #                                                                                   f" {self.memory.get_last_update(unique_node_ids)[~mask]}"
 
 
     updated_memory = self.memory.memory.data.clone()

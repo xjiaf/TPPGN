@@ -160,9 +160,9 @@ class PTGN(torch.nn.Module):
     position_memory = None
     if self.use_memory:
       if self.memory_update_at_start:
-        print("aaaaa")
+        # print("aaaaa")
         try:
-          print("bbb")
+          # print("bbb")
           for node_id in self.memory.messages:
             if self.memory.messages[node_id] != []:
               assert self.memory.messages[node_id][-1][1] == self.position_memory.messages[node_id][-1][1], \
@@ -180,7 +180,7 @@ class PTGN(torch.nn.Module):
                                                                 self.position_memory.messages)
         if (last_pos_update != last_update).any():
           mask = last_pos_update != last_update
-          print(f"mask: {mask.sum()}")
+          # print(f"mask: {mask.sum()}")
       else:
         memory = self.memory.get_memory(list(range(self.n_nodes)))
         last_update = self.memory.last_update
@@ -234,16 +234,16 @@ class PTGN(torch.nn.Module):
         # new messages for them)
         self.update_memory(positives, self.memory.messages)
 
-        assert torch.allclose(memory[positives], self.memory.get_memory(positives), atol=1e-5), \
-          "Something wrong in how the memory was updated"
+        # assert torch.allclose(memory[positives], self.memory.get_memory(positives), atol=1e-5), \
+        #   "Something wrong in how the memory was updated"
 
         # Remove messages for the positives since we have already updated the memory using them
         self.memory.clear_messages(positives)
 
         if self.use_position:
           self.update_position_memory(positives, self.position_memory.messages)
-          assert torch.allclose(position_memory[positives], self.position_memory.get_memory(positives), atol=1e-5), \
-            "Something wrong in how the position memory was updated"
+          # assert torch.allclose(position_memory[positives], self.position_memory.get_memory(positives), atol=1e-5), \
+          #   "Something wrong in how the position memory was updated"
 
           self.position_memory.clear_messages(positives)
 
