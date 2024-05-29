@@ -9,10 +9,9 @@ cp -r ~/scratch/papers/ptgn/ $TMPDIR
 
 # Process the data with a GPU app, from within the local NVMe storage area
 cd $TMPDIR/ptgn/
-python utils/preprocess_data.py --data reddit --bipartite
-
+python train_self_supervised.py --use_memory --prefix tgn-attn --n_runs 10 -p
 # Copy the results back to the main scratch area
-mv $TMPDIR/ptgn/ ~/scratch/papers/
+rsync -av $TMPDIR/ptgn/ ~/scratch/papers/ptgn/
 
 # The batch system will automatically delete the contents of $TMPDIR at the end of your job.
 
