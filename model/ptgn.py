@@ -161,15 +161,15 @@ class PTGN(torch.nn.Module):
     if self.use_memory:
       if self.memory_update_at_start:
         # print("aaaaa")
-        try:
-          # print("bbb")
-          for node_id in self.memory.messages:
-            if self.memory.messages[node_id] != []:
-              assert self.memory.messages[node_id][-1][1] == self.position_memory.messages[node_id][-1][1], \
-                "Something wrong in how the messages were created" \
-                f" {self.memory.messages[node_id][-1][1][node_id][-1][1]} {self.position_memory.messages[node_id][-1][1]}"
-        except IndexError:
-          pass
+        # try:
+        #   # print("bbb")
+        #   for node_id in self.memory.messages:
+        #     if self.memory.messages[node_id] != []:
+        #       assert self.memory.messages[node_id][-1][1] == self.position_memory.messages[node_id][-1][1], \
+        #         "Something wrong in how the messages were created" \
+        #         f" {self.memory.messages[node_id][-1][1][node_id][-1][1]} {self.position_memory.messages[node_id][-1][1]}"
+        # except IndexError:
+        #   pass
         # Update memory for all nodes with messages stored in previous batches
         # print(f"memory: {self.memory.messages}")
         memory, last_update = self.get_updated_memory(list(range(self.n_nodes)),
