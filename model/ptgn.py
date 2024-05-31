@@ -71,7 +71,7 @@ class PTGN(torch.nn.Module):
                            input_dimension=message_dimension,
                            message_dimension=message_dimension,
                            device=device)
-      self.message_aggregator = get_message_aggregator(aggregator_type=aggregator_type,
+      self.message_aggregator = get_message_aggregator(aggregator_type=aggregator_type,  #aggregator_type,
                                                        device=device)
       self.message_function = get_message_function(module_type=message_function,
                                                    raw_message_dimension=raw_message_dimension,
@@ -90,17 +90,17 @@ class PTGN(torch.nn.Module):
 
         self.position_memory = Memory(n_nodes=self.n_nodes,
                                       memory_dimension=self.memory_position_demension,
-                                      input_dimension=position_message_dimension,
-                                      message_dimension=position_message_dimension,
+                                      input_dimension=self.position_embedding_dim,
+                                      message_dimension=self.position_embedding_dim,
                                       device=device)
         self.position_message_aggregator = get_message_aggregator(aggregator_type="last",
                                                                   device=device)
         self.position_message_function = get_message_function(module_type="identity",
                                                               raw_message_dimension=raw_position_message_dimension,
-                                                              message_dimension=position_message_dimension)
-        self.position_memory_updater = get_memory_updater(module_type=memory_updater_type,
+                                                              message_dimension=self.position_embedding_dim)
+        self.position_memory_updater = get_memory_updater(module_type="last",
                                                           memory=self.position_memory,
-                                                          message_dimension=position_message_dimension,
+                                                          message_dimension=self.position_embedding_dim,
                                                           memory_dimension=self.memory_position_demension,
                                                           device=device)
     self.embedding_module_type = embedding_module_type
@@ -160,18 +160,7 @@ class PTGN(torch.nn.Module):
     position_memory = None
     if self.use_memory:
       if self.memory_update_at_start:
-        # print("aaaaa")
-        # try:
-        #   # print("bbb")
-        #   for node_id in self.memory.messages:
-        #     if self.memory.messages[node_id] != []:
-        #       assert self.memory.messages[node_id][-1][1] == self.position_memory.messages[node_id][-1][1], \
-        #         "Something wrong in how the messages were created" \
-        #         f" {self.memory.messages[node_id][-1][1][node_id][-1][1]} {self.position_memory.messages[node_id][-1][1]}"
-        # except IndexError:
-        #   pass
         # Update memory for all nodes with messages stored in previous batches
-        # print(f"memory: {self.memory.messages}")
         memory, last_update = self.get_updated_memory(list(range(self.n_nodes)),
                                                       self.memory.messages)
         if self.use_position:
@@ -234,16 +223,16 @@ class PTGN(torch.nn.Module):
         # new messages for them)
         self.update_memory(positives, self.memory.messages)
 
-        # assert torch.allclose(memory[positives], self.memory.get_memory(positives), atol=1e-5), \
-        #   "Something wrong in how the memory was updated"
+        assert torch.allclose(memory[positives], self.memory.get_memory(positives), atol=1e-5), \
+          "Something wrong in how the memory was updated"
 
         # Remove messages for the positives since we have already updated the memory using them
         self.memory.clear_messages(positives)
 
         if self.use_position:
           self.update_position_memory(positives, self.position_memory.messages)
-          # assert torch.allclose(position_memory[positives], self.position_memory.get_memory(positives), atol=1e-5), \
-          #   "Something wrong in how the position memory was updated"
+          assert torch.allclose(position_memory[positives], self.position_memory.get_memory(positives), atol=1e-5), \
+            "Something wrong in how the position memory was updated"
 
           self.position_memory.clear_messages(positives)
 
@@ -420,19 +409,18 @@ class PTGN(torch.nn.Module):
   def get_raw_position_messages(self, source_nodes, source_node_embedding, destination_nodes,
                                destination_node_embedding, edge_times, edge_idxs):
     edge_times = torch.from_numpy(edge_times).float().to(self.device)
-    edge_features = self.edge_raw_features[edge_idxs]
+    # edge_features = self.edge_raw_features[edge_idxs]
 
     source_memory = self.position_memory.get_memory(source_nodes) if not \
       self.use_source_embedding_in_message else source_node_embedding
-    destination_memory = self.position_memory.get_memory(destination_nodes) if \
-      not self.use_destination_embedding_in_message else destination_node_embedding
+    # destination_memory = self.position_memory.get_memory(destination_nodes) if \
+    #   not self.use_destination_embedding_in_message else destination_node_embedding
 
-    source_time_delta = edge_times - self.position_memory.last_update[source_nodes]
-    source_time_delta_encoding = self.time_encoder(source_time_delta.unsqueeze(dim=1)).view(len(
-      source_nodes), -1)
+    # source_time_delta = edge_times - self.position_memory.last_update[source_nodes]
+    # source_time_delta_encoding = self.time_encoder(source_time_delta.unsqueeze(dim=1)).view(len(
+    #   source_nodes), -1)
 
-    source_message = torch.cat([source_memory, destination_memory, edge_features,
-                                source_time_delta_encoding],
+    source_message = torch.cat([source_memory],
                                dim=1)
     messages = defaultdict(list)
     unique_sources = np.unique(source_nodes)

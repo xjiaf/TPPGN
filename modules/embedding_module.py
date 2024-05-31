@@ -274,7 +274,7 @@ class PositionEmbedding(GraphEmbedding):
     if position_memory is None:
       source_position_messages = self.position_embedding(source_nodes_torch)
     else:
-      source_position_messages = position_memory[source_nodes_torch, :] + \
+      source_position_messages = position_memory[source_nodes, :] + \
         self.position_embedding(source_nodes_torch)
 
     source_node_features = torch.cat([source_node_features,

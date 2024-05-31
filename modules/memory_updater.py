@@ -32,7 +32,7 @@ class SequenceMemoryUpdater(MemoryUpdater):
   def get_updated_memory(self, unique_node_ids, unique_messages, timestamps):
     if len(unique_node_ids) <= 0:
       return self.memory.memory.data.clone(), self.memory.last_update.data.clone()
-    mask = self.memory.get_last_update(unique_node_ids) <= timestamps
+    # mask = self.memory.get_last_update(unique_node_ids) <= timestamps
     # assert (self.memory.get_last_update(unique_node_ids) <= timestamps).all().item(), "Trying to " \
     #                                                                                  "update memory to time in the past" \
     #                                                                                  f" {self.memory.get_last_update(unique_node_ids)} {timestamps}" \
@@ -64,9 +64,27 @@ class RNNMemoryUpdater(SequenceMemoryUpdater):
     self.memory_updater = nn.RNNCell(input_size=message_dimension,
                                      hidden_size=memory_dimension)
 
+class LastMemoryUpdater(SequenceMemoryUpdater):
+  def __init__(self, memory, message_dimension, memory_dimension, device):
+    super(LastMemoryUpdater, self).__init__(memory, message_dimension, memory_dimension, device)
+    self.memory_updater = IdentityUpdater(input_size=message_dimension,
+                                          hidden_size=memory_dimension)
+
 
 def get_memory_updater(module_type, memory, message_dimension, memory_dimension, device):
   if module_type == "gru":
     return GRUMemoryUpdater(memory, message_dimension, memory_dimension, device)
   elif module_type == "rnn":
     return RNNMemoryUpdater(memory, message_dimension, memory_dimension, device)
+  elif module_type == "last":
+    return LastMemoryUpdater(memory, message_dimension, memory_dimension, device)
+
+
+class IdentityUpdater(nn.Module):
+    def __init__(self, input_size, hidden_size):
+        super(IdentityUpdater, self).__init__()
+        self.input_size = input_size
+        self.hidden_size = hidden_size
+
+    def forward(self, input, hidden):
+        return input
