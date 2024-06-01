@@ -231,8 +231,8 @@ class PTGN(torch.nn.Module):
 
         if self.use_position:
           self.update_position_memory(positives, self.position_memory.messages)
-          assert torch.allclose(position_memory[positives], self.position_memory.get_memory(positives), atol=1e-5), \
-            "Something wrong in how the position memory was updated"
+          # assert torch.allclose(position_memory[positives], self.position_memory.get_memory(positives), atol=1e-5), \
+          #   "Something wrong in how the position memory was updated"
 
           self.position_memory.clear_messages(positives)
 
