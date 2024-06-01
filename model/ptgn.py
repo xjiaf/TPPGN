@@ -16,7 +16,7 @@ class PTGN(torch.nn.Module):
   def __init__(self, neighbor_finder, node_features, edge_features, device, n_layers=2,
                n_heads=2, dropout=0.1, use_memory=False,
                memory_update_at_start=True, message_dimension=100,
-               memory_dimension=500, embedding_module_type="graph_attention",
+               memory_dimension=500, embedding_module_type="position",
                message_function="mlp",
                mean_time_shift_src=0, std_time_shift_src=1, mean_time_shift_dst=0,
                std_time_shift_dst=1, n_neighbors=None, aggregator_type="last",
@@ -84,9 +84,6 @@ class PTGN(torch.nn.Module):
 
       if self.use_position:
         self.memory_position_demension = self.position_embedding_dim
-        raw_position_message_dimension = 2 * self.memory_position_demension + self.n_edge_features + \
-                                          self.time_encoder.dimension
-        position_message_dimension = raw_position_message_dimension
 
         self.position_memory = Memory(n_nodes=self.n_nodes,
                                       memory_dimension=self.memory_position_demension,
@@ -96,14 +93,13 @@ class PTGN(torch.nn.Module):
         self.position_message_aggregator = get_message_aggregator(aggregator_type="last",
                                                                   device=device)
         self.position_message_function = get_message_function(module_type="identity",
-                                                              raw_message_dimension=raw_position_message_dimension,
+                                                              raw_message_dimension=self.position_embedding_dim,
                                                               message_dimension=self.position_embedding_dim)
         self.position_memory_updater = get_memory_updater(module_type="last",
                                                           memory=self.position_memory,
                                                           message_dimension=self.position_embedding_dim,
                                                           memory_dimension=self.memory_position_demension,
                                                           device=device)
-    self.embedding_module_type = embedding_module_type
 
     self.embedding_module = get_embedding_module(module_type=embedding_module_type,
                                                  node_features=self.node_raw_features,
