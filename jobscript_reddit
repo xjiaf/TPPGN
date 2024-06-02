@@ -9,7 +9,7 @@ cp -r ~/scratch/papers/ptgn/ $TMPDIR
 
 # Process the data with a GPU app, from within the local NVMe storage area
 cd $TMPDIR/ptgn/
-python train_self_supervised.py -d reddit --use_memory --prefix ptgn-attn-reddit --n_runs 3 -p --n_head 4
+python train_self_supervised.py -d reddit --use_memory --prefix ptgn-attn-reddit --n_runs 10 -p --n_head 4
 
 # Copy the results back to the main scratch area
 rsync -av $TMPDIR/ptgn/ ~/scratch/papers/ptgn/
