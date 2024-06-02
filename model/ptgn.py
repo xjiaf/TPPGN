@@ -25,7 +25,7 @@ class PTGN(torch.nn.Module):
                use_source_embedding_in_message=False,
                dyrep=False,
                use_position=False,
-               position_embedding_dim=5):
+               position_embedding_dim=8):
     super(PTGN, self).__init__()
 
     self.n_layers = n_layers
