@@ -411,6 +411,7 @@ class PositionAttentionEmbedding(GraphEmbedding):
                                             for _ in range(n_layers)])
       # Integrated position embedding functionality
       self.position_embedding = nn.Embedding(num_nodes, position_embedding_dim)
+      self.pos_linear = nn.Linear(position_embedding_dim, position_embedding_dim)
       self.alpha = alpha
       self.beta = torch.nn.Parameter(torch.tensor(beta), requires_grad=False)
 
@@ -433,11 +434,13 @@ class PositionAttentionEmbedding(GraphEmbedding):
     if self.use_memory:
       source_node_features = memory[source_nodes, :] + source_node_features
 
+    position_features = self.position_embedding(source_nodes_torch)
+    position_features = self.pos_linear(position_features)
     if position_memory is None:
-      source_position_messages = self.position_embedding(source_nodes_torch)
+      source_position_messages = position_features
     else:
       source_position_messages = position_memory[source_nodes, :] + \
-        self.position_embedding(source_nodes_torch)
+        position_features
 
     source_node_features = torch.cat([source_node_features,
                                       source_position_messages], dim=1)
