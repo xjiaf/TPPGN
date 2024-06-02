@@ -372,24 +372,38 @@ class PositionAttentionEmbedding(GraphEmbedding):
                                                       n_heads, dropout,
                                                       use_memory)
 
-      self.linear_1 = torch.nn.ModuleList([torch.nn.Linear(n_node_features  + position_embedding_dim,
+      self.linear_1 = torch.nn.ModuleList([torch.nn.Linear(embedding_dimension,
                                                            embedding_dimension) for _ in range(n_layers)])
       self.linear_11 = torch.nn.ModuleList([torch.nn.Linear(embedding_dimension, embedding_dimension)
                                             for _ in range(n_layers)])
-      self.linear_2 = torch.nn.ModuleList([torch.nn.Linear(n_node_features + position_embedding_dim,
-                                                           embedding_dimension) for _ in range(n_layers)])
-      self.linear_22 = torch.nn.ModuleList([torch.nn.Linear(embedding_dimension, embedding_dimension)
-                                            for _ in range(n_layers)])
 
       self.attention_models = torch.nn.ModuleList([TemporalAttentionLayer(
-                                                  n_node_features=embedding_dimension,
-                                                  n_neighbors_features=embedding_dimension,
+                                                  n_node_features=n_node_features+position_embedding_dim,
+                                                  n_neighbors_features=n_node_features+position_embedding_dim,
                                                   n_edge_features=n_edge_features,
                                                   time_dim=n_time_features,
                                                   n_head=n_heads,
                                                   dropout=dropout,
                                                   output_dimension=n_node_features)
                                                   for _ in range(n_layers)])
+      # self.linear_1 = torch.nn.ModuleList([torch.nn.Linear(n_node_features  + position_embedding_dim,
+      #                                                      embedding_dimension) for _ in range(n_layers)])
+      # self.linear_11 = torch.nn.ModuleList([torch.nn.Linear(embedding_dimension, embedding_dimension)
+      #                                       for _ in range(n_layers)])
+      # self.linear_2 = torch.nn.ModuleList([torch.nn.Linear(n_node_features + position_embedding_dim,
+      #                                                      embedding_dimension) for _ in range(n_layers)])
+      # self.linear_22 = torch.nn.ModuleList([torch.nn.Linear(embedding_dimension, embedding_dimension)
+      #                                       for _ in range(n_layers)])
+
+      # self.attention_models = torch.nn.ModuleList([TemporalAttentionLayer(
+      #                                             n_node_features=embedding_dimension,
+      #                                             n_neighbors_features=embedding_dimension,
+      #                                             n_edge_features=n_edge_features,
+      #                                             time_dim=n_time_features,
+      #                                             n_head=n_heads,
+      #                                             dropout=dropout,
+      #                                             output_dimension=n_node_features)
+      #                                             for _ in range(n_layers)])
 
       # Integrated position embedding functionality
       self.position_embedding = nn.Embedding(num_nodes, position_embedding_dim)
@@ -479,14 +493,13 @@ class PositionAttentionEmbedding(GraphEmbedding):
     neighbors_position_features = neighbor_embeddings[:, :, self.embedding_dimension:]
 
     # Aggregate node features
-    source_node_features = self.linear_1[n_layer - 1](source_node_features)
-    source_node_features = torch.relu(source_node_features)
-    source_node_features = self.linear_11[n_layer - 1](source_node_features)
-    reshaped_neighbors_embedding = self.linear_2[n_layer - 1](neighbor_embeddings.view(-1, neighbor_embeddings.shape[-1]))
-    reshaped_neighbors_embedding = torch.relu(reshaped_neighbors_embedding)
-    reshaped_neighbors_embedding = self.linear_22[n_layer - 1](reshaped_neighbors_embedding)
-    neighbor_embeddings = reshaped_neighbors_embedding.view(neighbor_embeddings.shape[0], neighbor_embeddings.shape[1], -1)
-
+    # source_node_features = self.linear_1[n_layer - 1](source_node_features)
+    # source_node_features = torch.relu(source_node_features)
+    # source_node_features = self.linear_11[n_layer - 1](source_node_features)
+    # reshaped_neighbors_embedding = self.linear_2[n_layer - 1](neighbor_embeddings.view(-1, neighbor_embeddings.shape[-1]))
+    # reshaped_neighbors_embedding = torch.relu(reshaped_neighbors_embedding)
+    # reshaped_neighbors_embedding = self.linear_22[n_layer - 1](reshaped_neighbors_embedding)
+    # neighbor_embeddings = reshaped_neighbors_embedding.view(neighbor_embeddings.shape[0], neighbor_embeddings.shape[1], -1)
     attention_model = self.attention_models[n_layer - 1]
     source_features_embedding, _ = attention_model(source_node_features,
                                                    source_nodes_time_embedding,
@@ -494,6 +507,9 @@ class PositionAttentionEmbedding(GraphEmbedding):
                                                    edge_time_embeddings,
                                                    edge_features,
                                                    mask)
+    source_features_embedding = self.linear_1[n_layer - 1](source_features_embedding)
+    source_features_embedding = torch.relu(source_features_embedding)
+    source_features_embedding = self.linear_11[n_layer - 1](source_features_embedding)
 
     # Aggregate position features
     mask = ~mask
