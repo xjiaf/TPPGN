@@ -16,6 +16,12 @@ python train_self_supervised.py --use_memory --prefix ptgn-attn-wiki --n_runs 10
 rsync -av $TMPDIR/ptgn/ ~/scratch/papers/ptgn/
 
 # The batch system will automatically delete the contents of $TMPDIR at the end of your job.
+cd ~/scratch/papers/ptgn/
+git pull
+git add ./log/
+git commit -m "logs updated"
+git push
 
+sleep 3
 #$ -m ea
 #$ -M jiafeng.xiong@manchester.ac.uk     # Send email when finished.
