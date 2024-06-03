@@ -12,6 +12,7 @@ import torch
 import numpy as np
 
 from model.tgn import TGN
+from model.ptgn import PTGN
 from utils.utils import EarlyStopMonitor, get_neighbor_finder, MLP
 from utils.data_processing import compute_time_statistics, get_data_node_classification
 from evaluation.evaluation import eval_node_classification
@@ -67,6 +68,9 @@ parser.add_argument('--use_validation', action='store_true',
                     help='Whether to use a validation set')
 parser.add_argument('--new_node', action='store_true', help='model new node')
 
+parser.add_argument('--use_position', '-p', action='store_true', help='Whether to use position encoding')
+parser.add_argument('--position_embedding_dim', type=int, default=8, help='Dimensions of the position encoding')
+
 try:
   args = parser.parse_args()
 except:
@@ -92,6 +96,7 @@ TIME_DIM = args.time_dim
 USE_MEMORY = args.use_memory
 MESSAGE_DIM = args.message_dim
 MEMORY_DIM = args.memory_dim
+POSITION_DIM = args.position_embedding_dim
 
 Path("./saved_models/").mkdir(parents=True, exist_ok=True)
 Path("./saved_checkpoints/").mkdir(parents=True, exist_ok=True)
@@ -142,19 +147,37 @@ for i in range(args.n_runs):
   Path("results/").mkdir(parents=True, exist_ok=True)
 
   # Initialize Model
-  tgn = TGN(neighbor_finder=train_ngh_finder, node_features=node_features,
-            edge_features=edge_features, device=device,
-            n_layers=NUM_LAYER,
-            n_heads=NUM_HEADS, dropout=DROP_OUT, use_memory=USE_MEMORY,
-            message_dimension=MESSAGE_DIM, memory_dimension=MEMORY_DIM,
-            memory_update_at_start=not args.memory_update_at_end,
-            embedding_module_type=args.embedding_module,
-            message_function=args.message_function,
-            aggregator_type=args.aggregator, n_neighbors=NUM_NEIGHBORS,
-            mean_time_shift_src=mean_time_shift_src, std_time_shift_src=std_time_shift_src,
-            mean_time_shift_dst=mean_time_shift_dst, std_time_shift_dst=std_time_shift_dst,
-            use_destination_embedding_in_message=args.use_destination_embedding_in_message,
-            use_source_embedding_in_message=args.use_source_embedding_in_message)
+  if not args.use_position:
+    tgn = TGN(neighbor_finder=train_ngh_finder, node_features=node_features,
+        edge_features=edge_features, device=device,
+        n_layers=NUM_LAYER,
+        n_heads=NUM_HEADS, dropout=DROP_OUT, use_memory=USE_MEMORY,
+        message_dimension=MESSAGE_DIM, memory_dimension=MEMORY_DIM,
+        memory_update_at_start=not args.memory_update_at_end,
+        embedding_module_type=args.embedding_module,
+        message_function=args.message_function,
+        aggregator_type=args.aggregator, n_neighbors=NUM_NEIGHBORS,
+        mean_time_shift_src=mean_time_shift_src, std_time_shift_src=std_time_shift_src,
+        mean_time_shift_dst=mean_time_shift_dst, std_time_shift_dst=std_time_shift_dst,
+        use_destination_embedding_in_message=args.use_destination_embedding_in_message,
+        use_source_embedding_in_message=args.use_source_embedding_in_message)
+  else:
+    tgn = PTGN(neighbor_finder=train_ngh_finder, node_features=node_features,
+              edge_features=edge_features, device=device,
+              n_layers=NUM_LAYER,
+              n_heads=NUM_HEADS, dropout=DROP_OUT, use_memory=USE_MEMORY,
+              message_dimension=MESSAGE_DIM, memory_dimension=MEMORY_DIM,
+              memory_update_at_start=not args.memory_update_at_end,
+              embedding_module_type="position",
+              message_function=args.message_function,
+              aggregator_type=args.aggregator,
+              n_neighbors=NUM_NEIGHBORS,
+              mean_time_shift_src=mean_time_shift_src, std_time_shift_src=std_time_shift_src,
+              mean_time_shift_dst=mean_time_shift_dst, std_time_shift_dst=std_time_shift_dst,
+              use_destination_embedding_in_message=args.use_destination_embedding_in_message,
+              use_source_embedding_in_message=args.use_source_embedding_in_message,
+              use_position=args.use_position,
+              position_embedding_dim=POSITION_DIM)
 
   tgn = tgn.to(device)
 
@@ -186,6 +209,8 @@ for i in range(args.n_runs):
     # Initialize memory of the model at each epoch
     if USE_MEMORY:
       tgn.memory.__init_memory__()
+      if args.use_position:
+        tgn.position_memory.__init_memory__()
 
     tgn = tgn.eval()
     decoder = decoder.train()
