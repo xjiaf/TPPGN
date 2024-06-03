@@ -1,0 +1,35 @@
+2024-06-01 00:28:45,684 - root - INFO - Namespace(data='wikipedia', bs=200, prefix='tgn-attn', n_degree=10, n_head=2, n_epoch=50, n_layer=1, lr=0.0001, patience=5, n_runs=10, drop_out=0.1, gpu=0, node_dim=100, time_dim=100, backprop_every=1, use_memory=True, embedding_module='graph_attention', message_function='identity', memory_updater='gru', aggregator='last', memory_update_at_end=False, message_dim=100, memory_dim=172, different_new_nodes=False, uniform=False, randomize_features=False, use_destination_embedding_in_message=False, use_source_embedding_in_message=False, dyrep=False, use_position=True, position_embedding_dim=100)
+2024-06-01 00:28:47,679 - root - INFO - num of training instances: 81029
+2024-06-01 00:28:47,679 - root - INFO - num of batches per epoch: 406
+2024-06-01 00:28:47,681 - root - INFO - start 0 epoch
+2024-06-01 00:29:37,507 - root - INFO - epoch: 0 took 49.83s
+2024-06-01 00:29:37,507 - root - INFO - Epoch mean loss: 0.7227497002467733
+2024-06-01 00:29:37,507 - root - INFO - val auc: 0.9267038648792851, new node val auc: 0.9271299180327869
+2024-06-01 00:29:37,508 - root - INFO - val ap: 0.9303753833581918, new node val ap: 0.9320425383673259
+2024-06-01 00:29:37,579 - root - INFO - start 1 epoch
+2024-06-01 00:30:33,206 - root - INFO - epoch: 1 took 55.67s
+2024-06-01 00:30:33,206 - root - INFO - Epoch mean loss: 0.5585974161994869
+2024-06-01 00:30:33,206 - root - INFO - val auc: 0.9573463933192323, new node val auc: 0.9548320696721312
+2024-06-01 00:30:33,206 - root - INFO - val ap: 0.9590698828256156, new node val ap: 0.9562933492820311
+2024-06-01 00:30:33,279 - root - INFO - start 2 epoch
+2024-06-01 00:31:29,469 - root - INFO - epoch: 2 took 56.24s
+2024-06-01 00:31:29,470 - root - INFO - Epoch mean loss: 0.4884496429210226
+2024-06-01 00:31:29,470 - root - INFO - val auc: 0.9643902218030068, new node val auc: 0.9605270491803277
+2024-06-01 00:31:29,470 - root - INFO - val ap: 0.9667514025828615, new node val ap: 0.9635571893144994
+2024-06-01 00:31:29,541 - root - INFO - start 3 epoch
+2024-06-01 00:32:23,532 - root - INFO - epoch: 3 took 54.04s
+2024-06-01 00:32:23,532 - root - INFO - Epoch mean loss: 0.4238956608428744
+2024-06-01 00:32:23,532 - root - INFO - val auc: 0.9732009360887209, new node val auc: 0.968132786885246
+2024-06-01 00:32:23,532 - root - INFO - val ap: 0.9749992576204457, new node val ap: 0.970619933832604
+2024-06-01 00:32:23,607 - root - INFO - start 4 epoch
+2024-06-01 00:33:17,023 - root - INFO - epoch: 4 took 53.46s
+2024-06-01 00:33:17,023 - root - INFO - Epoch mean loss: 0.379728294468572
+2024-06-01 00:33:17,023 - root - INFO - val auc: 0.9764635639970274, new node val auc: 0.9700817622950819
+2024-06-01 00:33:17,023 - root - INFO - val ap: 0.9777548894186335, new node val ap: 0.9720129095956733
+2024-06-01 00:33:17,093 - root - INFO - start 5 epoch
+2024-06-01 00:34:09,276 - root - INFO - epoch: 5 took 52.23s
+2024-06-01 00:34:09,276 - root - INFO - Epoch mean loss: 0.3639785787228293
+2024-06-01 00:34:09,276 - root - INFO - val auc: 0.9779333149926638, new node val auc: 0.9723668032786885
+2024-06-01 00:34:09,276 - root - INFO - val ap: 0.9790347107563699, new node val ap: 0.9742266491741517
+2024-06-01 00:34:09,364 - root - INFO - start 6 epoch
+2024-06-01 00:34:11,938 - root - ERROR - Something wrong in how the memory was updated

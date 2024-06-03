@@ -1,0 +1,19 @@
+2024-05-31 21:28:26,453 - root - INFO - Namespace(data='reddit', bs=200, prefix='tgn-attn-reddit', n_degree=10, n_head=2, n_epoch=50, n_layer=1, lr=0.0001, patience=5, n_runs=10, drop_out=0.1, gpu=0, node_dim=100, time_dim=100, backprop_every=1, use_memory=True, embedding_module='graph_attention', message_function='identity', memory_updater='gru', aggregator='last', memory_update_at_end=False, message_dim=100, memory_dim=172, different_new_nodes=False, uniform=False, randomize_features=False, use_destination_embedding_in_message=False, use_source_embedding_in_message=False, dyrep=False, use_position=True, position_embedding_dim=100)
+2024-05-31 21:28:37,478 - root - INFO - num of training instances: 389989
+2024-05-31 21:28:37,479 - root - INFO - num of batches per epoch: 1950
+2024-05-31 21:28:37,482 - root - INFO - start 0 epoch
+2024-05-31 21:35:37,392 - root - INFO - epoch: 0 took 419.91s
+2024-05-31 21:35:37,393 - root - INFO - Epoch mean loss: 0.49045049036160493
+2024-05-31 21:35:37,393 - root - INFO - val auc: 0.9749541531940563, new node val auc: 0.8977446180220668
+2024-05-31 21:35:37,393 - root - INFO - val ap: 0.9749609769172601, new node val ap: 0.898383988841227
+2024-05-31 21:35:37,492 - root - INFO - start 1 epoch
+2024-05-31 21:43:42,541 - root - INFO - epoch: 1 took 485.12s
+2024-05-31 21:43:42,542 - root - INFO - Epoch mean loss: 0.38610489132312625
+2024-05-31 21:43:42,542 - root - INFO - val auc: 0.9793197348468974, new node val auc: 0.9376967287623935
+2024-05-31 21:43:42,542 - root - INFO - val ap: 0.9797261462068935, new node val ap: 0.9399121729759291
+2024-05-31 21:43:42,644 - root - INFO - start 2 epoch
+2024-05-31 21:51:50,277 - root - INFO - epoch: 2 took 487.71s
+2024-05-31 21:51:50,279 - root - INFO - Epoch mean loss: 0.3521402659935829
+2024-05-31 21:51:50,279 - root - INFO - val auc: 0.9820937359033853, new node val auc: 0.9411343208691795
+2024-05-31 21:51:50,279 - root - INFO - val ap: 0.9823595636435962, new node val ap: 0.9451098979895947
+2024-05-31 21:51:50,400 - root - INFO - start 3 epoch
