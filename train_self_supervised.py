@@ -30,7 +30,7 @@ parser.add_argument('--n_head', type=int, default=2, help='Number of heads used 
 parser.add_argument('--n_epoch', type=int, default=50, help='Number of epochs')
 parser.add_argument('--n_layer', type=int, default=1, help='Number of network layers')
 parser.add_argument('--lr', type=float, default=0.0001, help='Learning rate')
-parser.add_argument('--patience', type=int, default=5, help='Patience for early stopping')
+parser.add_argument('--patience', type=int, default=10, help='Patience for early stopping')
 parser.add_argument('--n_runs', type=int, default=1, help='Number of runs')
 parser.add_argument('--drop_out', type=float, default=0.1, help='Dropout probability')
 parser.add_argument('--gpu', type=int, default=0, help='Idx for the gpu to use')
