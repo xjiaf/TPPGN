@@ -56,10 +56,8 @@ class PTGN(torch.nn.Module):
     self.std_time_shift_dst = std_time_shift_dst
 
     self.use_position = use_position
-    if use_position:
-      self.position_embedding_dim = position_embedding_dim
-      # self.position_embedding = torch.nn.Embedding(num_embeddings=self.n_nodes, embedding_dim=position_embedding_dim)
-
+    self.position_embedding_dim = position_embedding_dim
+    self.position_memory = None
     if self.use_memory:
       self.memory_dimension = memory_dimension
       self.memory_update_at_start = memory_update_at_start
@@ -82,24 +80,21 @@ class PTGN(torch.nn.Module):
                                                memory_dimension=self.memory_dimension,
                                                device=device)
 
-      if self.use_position:
-        self.memory_position_demension = self.position_embedding_dim
-
-        self.position_memory = Memory(n_nodes=self.n_nodes,
-                                      memory_dimension=self.memory_position_demension,
-                                      input_dimension=self.position_embedding_dim,
-                                      message_dimension=self.position_embedding_dim,
-                                      device=device)
-        self.position_message_aggregator = get_message_aggregator(aggregator_type="last",
-                                                                  device=device)
-        self.position_message_function = get_message_function(module_type="identity",
-                                                              raw_message_dimension=self.position_embedding_dim,
-                                                              message_dimension=self.position_embedding_dim)
-        self.position_memory_updater = get_memory_updater(module_type="last",
-                                                          memory=self.position_memory,
-                                                          message_dimension=self.position_embedding_dim,
-                                                          memory_dimension=self.memory_position_demension,
-                                                          device=device)
+      self.position_memory = Memory(n_nodes=self.n_nodes,
+                                    memory_dimension=self.position_embedding_dim,
+                                    input_dimension=self.position_embedding_dim,
+                                    message_dimension=self.position_embedding_dim,
+                                    device=device)
+      self.position_message_aggregator = get_message_aggregator(aggregator_type="last",
+                                                                device=device)
+      self.position_message_function = get_message_function(module_type="identity",
+                                                            raw_message_dimension=self.position_embedding_dim,
+                                                            message_dimension=self.position_embedding_dim)
+      self.position_memory_updater = get_memory_updater(module_type="last",
+                                                        memory=self.position_memory,
+                                                        message_dimension=self.position_embedding_dim,
+                                                        memory_dimension=self.position_embedding_dim,
+                                                        device=device)
 
     self.embedding_module = get_embedding_module(module_type=embedding_module_type,
                                                  node_features=self.node_raw_features,
@@ -120,16 +115,10 @@ class PTGN(torch.nn.Module):
                                                  position_embedding_dim=position_embedding_dim)
 
     # MLP to compute probability on an edge given two node embeddings
-    if use_position:
-      self.affinity_score = MergeLayer(self.n_node_features + self.position_embedding_dim,
-                                       self.n_node_features + self.position_embedding_dim,
-                                       self.n_node_features + self.position_embedding_dim,
-                                       1)
-    else:
-      self.affinity_score = MergeLayer(self.n_node_features,
-                                       self.n_node_features,
-                                       self.n_node_features,
-                                       1)
+    self.affinity_score = MergeLayer(self.n_node_features + self.position_embedding_dim,
+                                      self.n_node_features + self.position_embedding_dim,
+                                      self.n_node_features + self.position_embedding_dim,
+                                      1)
 
   def compute_temporal_embeddings(self, source_nodes, destination_nodes, negative_nodes, edge_times,
                                   edge_idxs, n_neighbors=20):
@@ -159,18 +148,16 @@ class PTGN(torch.nn.Module):
         # Update memory for all nodes with messages stored in previous batches
         memory, last_update = self.get_updated_memory(list(range(self.n_nodes)),
                                                       self.memory.messages)
-        if self.use_position:
-          # print(f"position_memory: {self.position_memory.messages}")
-          position_memory, last_pos_update = self.get_updated_position_memory(list(range(self.n_nodes)),
-                                                                self.position_memory.messages)
-        if (last_pos_update != last_update).any():
-          mask = last_pos_update != last_update
+
+        position_memory, last_pos_update = self.get_updated_position_memory(list(range(self.n_nodes)),
+                                                              self.position_memory.messages)
+        # if (last_pos_update != last_update).any():
+        #   mask = last_pos_update != last_update
           # print(f"mask: {mask.sum()}")
       else:
         memory = self.memory.get_memory(list(range(self.n_nodes)))
         last_update = self.memory.last_update
-        if self.use_position:
-          position_memory = self.position_memory.get_memory(list(range(self.n_nodes)))
+        position_memory = self.position_memory.get_memory(list(range(self.n_nodes)))
 
       ### Compute differences between the time the memory of a node was last updated,
       ### and the time for which we want to compute the embedding of a node
@@ -188,30 +175,19 @@ class PTGN(torch.nn.Module):
                              dim=0)
 
     # Compute the embeddings using the embedding module
-    if self.use_position:
-      node_embedding = self.embedding_module.compute_embedding(memory=memory,
-                                                               source_nodes=nodes,
-                                                               timestamps=timestamps,
-                                                               n_layers=self.n_layers,
-                                                               n_neighbors=n_neighbors,
-                                                               time_diffs=time_diffs,
-                                                               position_memory=position_memory)
+    node_embedding = self.embedding_module.compute_embedding(memory=memory,
+                                                              source_nodes=nodes,
+                                                              timestamps=timestamps,
+                                                              n_layers=self.n_layers,
+                                                              n_neighbors=n_neighbors,
+                                                              time_diffs=time_diffs,
+                                                              position_memory=position_memory)
 
-      source_node_embedding = node_embedding[:n_samples, :self.embedding_dimension]
-      destination_node_embedding = node_embedding[n_samples: 2 * n_samples, :self.embedding_dimension]
-      negative_node_embedding = node_embedding[2 * n_samples:, :self.embedding_dimension]
-      source_position_embedding = node_embedding[:n_samples, self.embedding_dimension:]
-      destination_position_embedding = node_embedding[n_samples: 2 * n_samples, self.embedding_dimension:]
-    else:
-      node_embedding = self.embedding_module.compute_embedding(memory=memory,
-                                                               source_nodes=nodes,
-                                                               timestamps=timestamps,
-                                                               n_layers=self.n_layers,
-                                                               n_neighbors=n_neighbors,
-                                                               time_diffs=time_diffs)
-      source_node_embedding = node_embedding[:n_samples]
-      destination_node_embedding = node_embedding[n_samples: 2 * n_samples]
-      negative_node_embedding = node_embedding[2 * n_samples:]
+    source_node_embedding = node_embedding[:n_samples, :self.embedding_dimension]
+    destination_node_embedding = node_embedding[n_samples: 2 * n_samples, :self.embedding_dimension]
+    negative_node_embedding = node_embedding[2 * n_samples:, :self.embedding_dimension]
+    source_position_embedding = node_embedding[:n_samples, self.embedding_dimension:]
+    destination_position_embedding = node_embedding[n_samples: 2 * n_samples, self.embedding_dimension:]
 
     if self.use_memory:
       if self.memory_update_at_start:
@@ -225,12 +201,11 @@ class PTGN(torch.nn.Module):
         # Remove messages for the positives since we have already updated the memory using them
         self.memory.clear_messages(positives)
 
-        if self.use_position:
-          self.update_position_memory(positives, self.position_memory.messages)
-          # assert torch.allclose(position_memory[positives], self.position_memory.get_memory(positives), atol=1e-5), \
-          #   "Something wrong in how the position memory was updated"
+        self.update_position_memory(positives, self.position_memory.messages)
+        # assert torch.allclose(position_memory[positives], self.position_memory.get_memory(positives), atol=1e-5), \
+        #   "Something wrong in how the position memory was updated"
 
-          self.position_memory.clear_messages(positives)
+        self.position_memory.clear_messages(positives)
 
       unique_sources, source_id_to_messages = self.get_raw_messages(source_nodes,
                                                                     source_node_embedding,
@@ -243,18 +218,17 @@ class PTGN(torch.nn.Module):
                                                                               source_node_embedding,
                                                                               edge_times, edge_idxs)
 
-      if self.use_position:
-        unique_position_sources, source_id_to_position_messages = self.get_raw_position_messages(source_nodes,
-                                                                                                 source_position_embedding,
-                                                                                                 destination_nodes,
-                                                                                                 destination_position_embedding,
-                                                                                                 edge_times, edge_idxs)
-        unique_position_destinations, destination_id_to_position_messages = self.get_raw_position_messages(
-          destination_nodes,
-          destination_position_embedding,
-          source_nodes,
-          source_position_embedding,
-          edge_times, edge_idxs)
+      unique_position_sources, source_id_to_position_messages = self.get_raw_position_messages(source_nodes,
+                                                                                                source_position_embedding,
+                                                                                                destination_nodes,
+                                                                                                destination_position_embedding,
+                                                                                                edge_times, edge_idxs)
+      unique_position_destinations, destination_id_to_position_messages = self.get_raw_position_messages(
+        destination_nodes,
+        destination_position_embedding,
+        source_nodes,
+        source_position_embedding,
+        edge_times, edge_idxs)
 
       if self.memory_update_at_start:
         self.memory.store_raw_messages(unique_sources, source_id_to_messages)
@@ -267,9 +241,8 @@ class PTGN(torch.nn.Module):
         self.update_memory(unique_sources, source_id_to_messages)
         self.update_memory(unique_destinations, destination_id_to_messages)
 
-        if self.use_position:
-          self.update_position_memory(unique_position_sources, source_id_to_position_messages)
-          self.update_position_memory(unique_position_destinations, destination_id_to_position_messages)
+        self.update_position_memory(unique_position_sources, source_id_to_position_messages)
+        self.update_position_memory(unique_position_destinations, destination_id_to_position_messages)
 
       if self.dyrep:
         if self.use_position:
@@ -407,8 +380,9 @@ class PTGN(torch.nn.Module):
     edge_times = torch.from_numpy(edge_times).float().to(self.device)
     # edge_features = self.edge_raw_features[edge_idxs]
 
-    source_memory = self.position_memory.get_memory(source_nodes) if not \
-      self.use_source_embedding_in_message else source_node_embedding
+    # source_memory = self.position_memory.get_memory(source_nodes) if not \
+    #   self.use_source_embedding_in_message else source_node_embedding
+    source_memory =  source_node_embedding
     # destination_memory = self.position_memory.get_memory(destination_nodes) if \
     #   not self.use_destination_embedding_in_message else destination_node_embedding
 
