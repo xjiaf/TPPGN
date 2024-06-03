@@ -438,12 +438,12 @@ class PositionAttentionEmbedding(GraphEmbedding):
     if self.use_memory:
       source_node_features = memory[source_nodes, :] + source_node_features
 
-    position_features = self.position_embedding(source_nodes_torch)
+    self.position_features = self.position_embedding(source_nodes_torch)
     if position_memory is None:
-      source_position_messages = position_features
+      source_position_messages = self.position_features
     else:
       source_position_messages = position_memory[source_nodes, :] + \
-        position_features
+        self.position_features
 
     source_node_features = torch.cat([source_node_features,
                                       source_position_messages], dim=1)
@@ -502,7 +502,17 @@ class PositionAttentionEmbedding(GraphEmbedding):
     source_position_embedding = source_node_features[:, self.embedding_dimension:]
     neighbors_position_features = neighbor_embeddings[:, :, self.embedding_dimension:]
 
+    # Aggregate position features
+    mask = ~mask
+    timestamps = timestamps.unsqueeze(-1)
+    number_neighbors = torch.sum(mask, dim=1).unsqueeze(-1).unsqueeze(-1)
+    neighbors_position_sum = neighbors_position_features * (self.alpha ** (
+      -torch.relu(self.beta * (timestamps))))  # / torch.sqrt(number_neighbors + 1e-4)
+    neighbors_position_sum = torch.sum(neighbors_position_sum * mask.unsqueeze(-1), dim=1)
+    source_position_embedding = neighbors_position_sum + source_position_embedding + self.position_features
+
     # Aggregate node features
+    source_node_features[:, self.embedding_dimension:] = source_position_embedding  # update source_node_features
     # source_node_features = self.linear_1[n_layer - 1](source_node_features)
     # source_node_features = torch.relu(source_node_features)
     # source_node_features = self.linear_11[n_layer - 1](source_node_features)
@@ -517,17 +527,6 @@ class PositionAttentionEmbedding(GraphEmbedding):
                                                    edge_time_embeddings,
                                                    edge_features,
                                                    mask)
-    # Aggregate position features
-    mask = ~mask
-    timestamps = timestamps.unsqueeze(-1)
-    number_neighbors = torch.sum(mask, dim=1).unsqueeze(-1).unsqueeze(-1)
-
-    neighbors_position_sum = neighbors_position_features * (self.alpha ** (
-      -torch.relu(self.beta * (timestamps)) / torch.sqrt(number_neighbors + 1e-4)))
-
-    neighbors_position_sum = torch.sum(neighbors_position_sum * mask.unsqueeze(-1), dim=1)
-
-    source_position_embedding = neighbors_position_sum + source_position_embedding
 
     # Combine node and position features
     source_embedding = torch.cat([source_features_embedding, source_position_embedding], dim=1)

@@ -382,8 +382,9 @@ class PTGN(torch.nn.Module):
 
     # source_memory = self.position_memory.get_memory(source_nodes) if not \
     #   self.use_source_embedding_in_message else source_node_embedding
-    source_memory = source_node_embedding
-    # destination_memory = destination_node_embedding
+    source_memory =  source_node_embedding
+    # destination_memory = self.position_memory.get_memory(destination_nodes) if \
+    #   not self.use_destination_embedding_in_message else destination_node_embedding
 
     # source_time_delta = edge_times - self.position_memory.last_update[source_nodes]
     # source_time_delta_encoding = self.time_encoder(source_time_delta.unsqueeze(dim=1)).view(len(
