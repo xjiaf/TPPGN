@@ -216,6 +216,7 @@ try:
       # Reinitialize memory of the model at the start of each epoch
       if USE_MEMORY:
         tgn.memory.__init_memory__()
+        tgn.position_memory.__init_memory__()
 
       # Train using only training graph
       tgn.set_neighbor_finder(train_ngh_finder)
@@ -263,6 +264,7 @@ try:
         # the start of time
         if USE_MEMORY:
           tgn.memory.detach_memory()
+          tgn.position_memory.detach_memory()
 
       epoch_time = time.time() - start_epoch
       epoch_times.append(epoch_time)
@@ -275,27 +277,31 @@ try:
         # Backup memory at the end of training, so later we can restore it and use it for the
         # validation on unseen nodes
         train_memory_backup = tgn.memory.backup_memory()
+        train_position_memory_backup = tgn.position_memory.backup_memory()
 
       val_ap, val_auc = eval_edge_prediction(model=tgn,
-                                                              negative_edge_sampler=val_rand_sampler,
-                                                              data=val_data,
-                                                              n_neighbors=NUM_NEIGHBORS)
+                                             negative_edge_sampler=val_rand_sampler,
+                                             data=val_data,
+                                             n_neighbors=NUM_NEIGHBORS)
       if USE_MEMORY:
         val_memory_backup = tgn.memory.backup_memory()
+        val_position_memory_backup = tgn.position_memory.backup_memory()
         # Restore memory we had at the end of training to be used when validating on new nodes.
         # Also backup memory after validation so it can be used for testing (since test edges are
         # strictly later in time than validation edges)
         tgn.memory.restore_memory(train_memory_backup)
+        tgn.position_memory.restore_memory(train_position_memory_backup)
 
       # Validate on unseen nodes
       nn_val_ap, nn_val_auc = eval_edge_prediction(model=tgn,
-                                                                          negative_edge_sampler=val_rand_sampler,
-                                                                          data=new_node_val_data,
-                                                                          n_neighbors=NUM_NEIGHBORS)
+                                                   negative_edge_sampler=val_rand_sampler,
+                                                   data=new_node_val_data,
+                                                   n_neighbors=NUM_NEIGHBORS)
 
       if USE_MEMORY:
         # Restore memory we had at the end of validation
         tgn.memory.restore_memory(val_memory_backup)
+        tgn.position_memory.restore_memory(val_position_memory_backup)
 
       new_nodes_val_aps.append(nn_val_ap)
       val_aps.append(val_ap)
@@ -337,22 +343,24 @@ try:
     # nodes
     if USE_MEMORY:
       val_memory_backup = tgn.memory.backup_memory()
+      val_position_memory_backup = tgn.position_memory.backup_memory()
 
     ### Test
     tgn.embedding_module.neighbor_finder = full_ngh_finder
     test_ap, test_auc = eval_edge_prediction(model=tgn,
-                                                                negative_edge_sampler=test_rand_sampler,
-                                                                data=test_data,
-                                                                n_neighbors=NUM_NEIGHBORS)
+                                             negative_edge_sampler=test_rand_sampler,
+                                             data=test_data,
+                                             n_neighbors=NUM_NEIGHBORS)
 
     if USE_MEMORY:
       tgn.memory.restore_memory(val_memory_backup)
+      tgn.position_memory.restore_memory(val_position_memory_backup)
 
     # Test on unseen nodes
     nn_test_ap, nn_test_auc = eval_edge_prediction(model=tgn,
-                                                                            negative_edge_sampler=nn_test_rand_sampler,
-                                                                            data=new_node_test_data,
-                                                                            n_neighbors=NUM_NEIGHBORS)
+                                                   negative_edge_sampler=nn_test_rand_sampler,
+                                                   data=new_node_test_data,
+                                                   n_neighbors=NUM_NEIGHBORS)
 
     logger.info(
       'Test statistics: Old nodes -- auc: {}, ap: {}'.format(test_auc, test_ap))
@@ -373,6 +381,7 @@ try:
     if USE_MEMORY:
       # Restore memory at the end of validation (save a model which is ready for testing)
       tgn.memory.restore_memory(val_memory_backup)
+      tgn.position_memory.restore_memory(val_position_memory_backup)
     torch.save(tgn.state_dict(), MODEL_SAVE_PATH)
     logger.info('TGN model saved')
 except  Exception as e:
