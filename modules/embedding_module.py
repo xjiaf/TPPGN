@@ -413,7 +413,7 @@ class PositionAttentionEmbedding(GraphEmbedding):
       self.position_embedding = nn.Sequential(
         nn.Embedding(num_nodes, position_embedding_dim),
         nn.Linear(position_embedding_dim, position_embedding_dim),
-        # nn.ReLU(),
+        nn.ReLU(),
         nn.Linear(position_embedding_dim, position_embedding_dim)
       )
       self.alpha = alpha
@@ -512,6 +512,8 @@ class PositionAttentionEmbedding(GraphEmbedding):
     source_position_embedding = neighbors_position_sum + source_position_embedding #+ self.position_features
 
     # Aggregate node features
+    # source_node_features = torch.cat([source_node_features[:, :self.embedding_dimension], source_position_embedding], dim=1)
+
     source_node_features = self.linear_1[n_layer - 1](source_node_features)
     source_node_features = torch.relu(source_node_features)
     source_node_features = self.linear_11[n_layer - 1](source_node_features)
