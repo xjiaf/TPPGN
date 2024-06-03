@@ -381,14 +381,14 @@ class PositionAttentionEmbedding(GraphEmbedding):
                                                   dropout=dropout,
                                                   output_dimension=n_node_features)
                                                   for _ in range(n_layers)])
-      # self.linear_1 = torch.nn.ModuleList([torch.nn.Linear(n_node_features  + position_embedding_dim,
-      #                                                      embedding_dimension) for _ in range(n_layers)])
-      # self.linear_11 = torch.nn.ModuleList([torch.nn.Linear(embedding_dimension, embedding_dimension)
-      #                                       for _ in range(n_layers)])
-      # self.linear_2 = torch.nn.ModuleList([torch.nn.Linear(n_node_features + position_embedding_dim,
-      #                                                      embedding_dimension) for _ in range(n_layers)])
-      # self.linear_22 = torch.nn.ModuleList([torch.nn.Linear(embedding_dimension, embedding_dimension)
-      #                                       for _ in range(n_layers)])
+      self.linear_1 = torch.nn.ModuleList([torch.nn.Linear(n_node_features  + position_embedding_dim,
+                                                           embedding_dimension) for _ in range(n_layers)])
+      self.linear_11 = torch.nn.ModuleList([torch.nn.Linear(embedding_dimension, embedding_dimension)
+                                            for _ in range(n_layers)])
+      self.linear_2 = torch.nn.ModuleList([torch.nn.Linear(n_node_features + position_embedding_dim,
+                                                           embedding_dimension) for _ in range(n_layers)])
+      self.linear_22 = torch.nn.ModuleList([torch.nn.Linear(embedding_dimension, embedding_dimension)
+                                            for _ in range(n_layers)])
 
       # self.attention_models = torch.nn.ModuleList([TemporalAttentionLayer(
       #                                             n_node_features=embedding_dimension,
@@ -503,19 +503,19 @@ class PositionAttentionEmbedding(GraphEmbedding):
     neighbors_position_features = neighbor_embeddings[:, :, self.embedding_dimension:]
 
     # Aggregate position features
-    mask = ~mask
+    position_mask = ~mask
     timestamps = timestamps.unsqueeze(-1)
-    number_neighbors = torch.sum(mask, dim=1).unsqueeze(-1).unsqueeze(-1)
+    number_neighbors = torch.sum(position_mask, dim=1).unsqueeze(-1).unsqueeze(-1)
     neighbors_position_sum = neighbors_position_features * (self.alpha ** (
-      -torch.relu(self.beta * (timestamps))))  # / torch.sqrt(number_neighbors + 1e-4)
-    neighbors_position_sum = torch.sum(neighbors_position_sum * mask.unsqueeze(-1), dim=1)
-    source_position_embedding = neighbors_position_sum + source_position_embedding + self.position_features
+      -torch.relu(self.beta * (timestamps)) / torch.sqrt(number_neighbors + 1e-4)))  #
+    neighbors_position_sum = torch.sum(neighbors_position_sum * position_mask.unsqueeze(-1), dim=1)
+    source_position_embedding = neighbors_position_sum + source_position_embedding #+ self.position_features
 
     # Aggregate node features
-    source_node_features[:, self.embedding_dimension:] = source_position_embedding  # update source_node_features
-    # source_node_features = self.linear_1[n_layer - 1](source_node_features)
-    # source_node_features = torch.relu(source_node_features)
-    # source_node_features = self.linear_11[n_layer - 1](source_node_features)
+    source_node_features = self.linear_1[n_layer - 1](source_node_features)
+    source_node_features = torch.relu(source_node_features)
+    source_node_features = self.linear_11[n_layer - 1](source_node_features)
+    source_node_features = torch.cat([source_node_features, source_position_embedding], dim=1)
     # reshaped_neighbors_embedding = self.linear_2[n_layer - 1](neighbor_embeddings.view(-1, neighbor_embeddings.shape[-1]))
     # reshaped_neighbors_embedding = torch.relu(reshaped_neighbors_embedding)
     # reshaped_neighbors_embedding = self.linear_22[n_layer - 1](reshaped_neighbors_embedding)
