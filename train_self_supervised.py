@@ -8,6 +8,7 @@ import torch
 import numpy as np
 import pickle
 from pathlib import Path
+from datetime import datetime
 
 from evaluation.evaluation import eval_edge_prediction
 from model.tgn import TGN
@@ -107,7 +108,8 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
 Path("log/").mkdir(parents=True, exist_ok=True)
-fh = logging.FileHandler('log/{}.log'.format(str(time.time())))
+filename = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+fh = logging.FileHandler('log/{}.log'.format(filename))
 fh.setLevel(logging.DEBUG)
 ch = logging.StreamHandler()
 ch.setLevel(logging.WARN)
