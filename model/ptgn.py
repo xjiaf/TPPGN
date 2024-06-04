@@ -90,7 +90,7 @@ class PTGN(torch.nn.Module):
       self.position_message_function = get_message_function(module_type="identity",
                                                             raw_message_dimension=self.position_embedding_dim,
                                                             message_dimension=self.position_embedding_dim)
-      self.position_memory_updater = get_memory_updater(module_type="last",
+      self.position_memory_updater = get_memory_updater(module_type="gru",   # "last",
                                                         memory=self.position_memory,
                                                         message_dimension=self.position_embedding_dim,
                                                         memory_dimension=self.position_embedding_dim,
@@ -116,9 +116,9 @@ class PTGN(torch.nn.Module):
 
     # MLP to compute probability on an edge given two node embeddings
     self.affinity_score = MergeLayer(self.n_node_features + self.position_embedding_dim,
-                                      self.n_node_features + self.position_embedding_dim,
-                                      self.n_node_features + self.position_embedding_dim,
-                                      1)
+                                     self.n_node_features + self.position_embedding_dim,
+                                     self.n_node_features + self.position_embedding_dim,
+                                     1)
 
   def compute_temporal_embeddings(self, source_nodes, destination_nodes, negative_nodes, edge_times,
                                   edge_idxs, n_neighbors=20):
@@ -176,12 +176,12 @@ class PTGN(torch.nn.Module):
 
     # Compute the embeddings using the embedding module
     node_embedding = self.embedding_module.compute_embedding(memory=memory,
-                                                              source_nodes=nodes,
-                                                              timestamps=timestamps,
-                                                              n_layers=self.n_layers,
-                                                              n_neighbors=n_neighbors,
-                                                              time_diffs=time_diffs,
-                                                              position_memory=position_memory)
+                                                             source_nodes=nodes,
+                                                             timestamps=timestamps,
+                                                             n_layers=self.n_layers,
+                                                             n_neighbors=n_neighbors,
+                                                             time_diffs=time_diffs,
+                                                             position_memory=position_memory)
 
     source_node_embedding = node_embedding[:n_samples, :self.embedding_dimension]
     destination_node_embedding = node_embedding[n_samples: 2 * n_samples, :self.embedding_dimension]
