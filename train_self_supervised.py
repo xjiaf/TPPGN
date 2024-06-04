@@ -64,8 +64,8 @@ parser.add_argument('--use_source_embedding_in_message', action='store_true',
 parser.add_argument('--dyrep', action='store_true',
                     help='Whether to run the dyrep model')
 parser.add_argument('--use_position', '-p', action='store_true', help='Whether to use position encoding')
-parser.add_argument('--position_dim', "-pd", type=int, default=128, help='Dimensions of the position encoding')
-parser.add_argument('--position_embedding_dim', '-ped', type=int, default=64, help='Dimensions of the position decoding')
+parser.add_argument('--position_dim', "-pd", type=int, default=32, help='Dimensions of the position encoding')
+parser.add_argument('--position_embedding_dim', '-ped', type=int, default=32, help='Dimensions of the position decoding')
 
 try:
   args = parser.parse_args()
