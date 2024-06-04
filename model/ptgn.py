@@ -90,7 +90,7 @@ class PTGN(torch.nn.Module):
       self.position_message_function = get_message_function(module_type="identity",
                                                             raw_message_dimension=self.position_embedding_dim,
                                                             message_dimension=self.position_embedding_dim)
-      self.position_memory_updater = get_memory_updater(module_type="gru",   # "last",
+      self.position_memory_updater = get_memory_updater(module_type="last",   #
                                                         memory=self.position_memory,
                                                         message_dimension=self.position_embedding_dim,
                                                         memory_dimension=self.position_embedding_dim,

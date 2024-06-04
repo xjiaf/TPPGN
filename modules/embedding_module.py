@@ -507,7 +507,7 @@ class PositionAttentionEmbedding(GraphEmbedding):
     timestamps = timestamps.unsqueeze(-1)
     number_neighbors = torch.sum(position_mask, dim=1).unsqueeze(-1).unsqueeze(-1)
     neighbors_position_sum = neighbors_position_features * (self.alpha ** (
-      -torch.relu(self.beta * (timestamps)) / torch.sqrt(number_neighbors + 1e-4)))  #
+      -torch.relu(self.beta * (timestamps)) / torch.sqrt(number_neighbors + 1e-4))) * 2
     neighbors_position_sum = torch.sum(neighbors_position_sum * position_mask.unsqueeze(-1), dim=1)
     source_position_embedding = neighbors_position_sum + source_position_embedding #+ self.position_features
 
