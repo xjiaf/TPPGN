@@ -16,13 +16,11 @@ from model.ptgn import PTGN
 from utils.utils import EarlyStopMonitor, RandEdgeSampler, get_neighbor_finder
 from utils.data_processing import get_data, compute_time_statistics
 
-torch.manual_seed(0)
-np.random.seed(0)
-
 ### Argument and global variables
 parser = argparse.ArgumentParser('TGN self-supervised training')
 parser.add_argument('-d', '--data', type=str, help='Dataset name (eg. wikipedia or reddit)',
                     default='wikipedia')
+parser.add_argument('--seed', "-s", type=int, default=16, help='seed')
 parser.add_argument('--bs', type=int, default=200, help='Batch_size')
 parser.add_argument('--prefix', type=str, default='', help='Prefix to name the checkpoints')
 parser.add_argument('--n_degree', type=int, default=10, help='Number of neighbors to sample')
@@ -66,15 +64,16 @@ parser.add_argument('--use_source_embedding_in_message', action='store_true',
 parser.add_argument('--dyrep', action='store_true',
                     help='Whether to run the dyrep model')
 parser.add_argument('--use_position', '-p', action='store_true', help='Whether to use position encoding')
-parser.add_argument('--position_embedding_dim', type=int, default=8, help='Dimensions of the position encoding')
-
-
+parser.add_argument('--position_embedding_dim', "-pd", type=int, default=8, help='Dimensions of the position encoding')
 
 try:
   args = parser.parse_args()
 except:
   parser.print_help()
   sys.exit(0)
+
+torch.manual_seed(args.seed)
+np.random.seed(args.seed)
 
 BATCH_SIZE = args.bs
 NUM_NEIGHBORS = args.n_degree
