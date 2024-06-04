@@ -362,7 +362,7 @@ class PositionAttentionEmbedding(GraphEmbedding):
                time_encoder, n_layers, n_node_features, n_edge_features,
                n_time_features, embedding_dimension, device, num_nodes: int,
                n_heads=2, dropout=0.1, use_memory=True,
-               alpha=2, beta=0.1,
+               alpha=2, beta=0.1, step=2,
                position_embedding_dim=8):
       super(PositionAttentionEmbedding, self).__init__(node_features, edge_features, memory,
                                                       neighbor_finder, time_encoder, n_layers,
@@ -418,6 +418,7 @@ class PositionAttentionEmbedding(GraphEmbedding):
       )
       self.alpha = alpha
       self.beta = torch.nn.Parameter(torch.tensor(beta), requires_grad=False)
+      self.step = step
 
   def compute_embedding(self, memory, source_nodes, timestamps, n_layers,
                         n_neighbors=20, time_diffs=None, use_time_proj=True,
@@ -507,7 +508,7 @@ class PositionAttentionEmbedding(GraphEmbedding):
     timestamps = timestamps.unsqueeze(-1)
     number_neighbors = torch.sum(position_mask, dim=1).unsqueeze(-1).unsqueeze(-1)
     neighbors_position_sum = neighbors_position_features * (self.alpha ** (
-      -torch.relu(self.beta * (timestamps)) / torch.sqrt(number_neighbors + 1e-4))) * 2
+      -torch.relu(self.beta * (timestamps)) / torch.sqrt(number_neighbors + 1e-4))) * self.step
     neighbors_position_sum = torch.sum(neighbors_position_sum * position_mask.unsqueeze(-1), dim=1)
     source_position_embedding = neighbors_position_sum + source_position_embedding #+ self.position_features
 
