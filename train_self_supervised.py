@@ -64,7 +64,8 @@ parser.add_argument('--use_source_embedding_in_message', action='store_true',
 parser.add_argument('--dyrep', action='store_true',
                     help='Whether to run the dyrep model')
 parser.add_argument('--use_position', '-p', action='store_true', help='Whether to use position encoding')
-parser.add_argument('--position_embedding_dim', "-pd", type=int, default=8, help='Dimensions of the position encoding')
+parser.add_argument('--position_dim', "-pd", type=int, default=8, help='Dimensions of the position encoding')
+parser.add_argument('--position_embedding_dim', '-ped', type=int, default=16, help='Dimensions of the position decoding')
 
 try:
   args = parser.parse_args()
@@ -90,7 +91,8 @@ TIME_DIM = args.time_dim
 USE_MEMORY = args.use_memory
 MESSAGE_DIM = args.message_dim
 MEMORY_DIM = args.memory_dim
-POSITION_DIM = args.position_embedding_dim
+POSITION_DIM = args.position_dim
+POSITION_EMBEDDING_DIM = args.position_embedding_dim
 
 Path("./saved_models/").mkdir(parents=True, exist_ok=True)
 Path("./saved_checkpoints/").mkdir(parents=True, exist_ok=True)
@@ -191,7 +193,8 @@ try:
                 use_source_embedding_in_message=args.use_source_embedding_in_message,
                 dyrep=args.dyrep,
                 use_position=args.use_position,
-                position_embedding_dim=POSITION_DIM)
+                position_dim=POSITION_DIM,
+                position_embedding_dim=POSITION_EMBEDDING_DIM)
     criterion = torch.nn.BCELoss()
     optimizer = torch.optim.Adam(tgn.parameters(), lr=LEARNING_RATE)
     tgn = tgn.to(device)
