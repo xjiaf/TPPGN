@@ -65,7 +65,7 @@ parser.add_argument('--use_source_embedding_in_message', action='store_true',
 parser.add_argument('--dyrep', action='store_true',
                     help='Whether to run the dyrep model')
 
-parser.add_argument('--beta', type=float, default=0.1, help='Initial value for the beta parameter')
+parser.add_argument('--beta', type=float, default=0.0001, help='Initial value for the beta parameter')
 parser.add_argument('--use_position', '-p', action='store_true', help='Whether to use position encoding')
 parser.add_argument('--position_dim', "-pd", type=int, default=4, help='Dimensions of the position encoding')
 parser.add_argument('--position_embedding_dim', '-ped', type=int, default=12, help='Dimensions of the position decoding')
