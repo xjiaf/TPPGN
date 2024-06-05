@@ -197,6 +197,7 @@ try:
                 position_embedding_dim=POSITION_EMBEDDING_DIM)
     criterion = torch.nn.BCELoss()
     optimizer = torch.optim.Adam(tgn.parameters(), lr=LEARNING_RATE)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=15, gamma=0.5)
     tgn = tgn.to(device)
 
     num_instance = len(train_data.sources)
@@ -272,6 +273,8 @@ try:
           if args.use_position:
             tgn.position_memory.detach_memory()
 
+      # Use scheduler
+      scheduler.step()
       epoch_time = time.time() - start_epoch
       epoch_times.append(epoch_time)
 
