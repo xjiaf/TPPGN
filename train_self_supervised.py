@@ -64,6 +64,8 @@ parser.add_argument('--use_source_embedding_in_message', action='store_true',
                     help='Whether to use the embedding of the source node as part of the message')
 parser.add_argument('--dyrep', action='store_true',
                     help='Whether to run the dyrep model')
+
+parser.add_argument('--beta', type=float, default=0.1, help='Initial value for the beta parameter')
 parser.add_argument('--use_position', '-p', action='store_true', help='Whether to use position encoding')
 parser.add_argument('--position_dim', "-pd", type=int, default=4, help='Dimensions of the position encoding')
 parser.add_argument('--position_embedding_dim', '-ped', type=int, default=12, help='Dimensions of the position decoding')
@@ -203,12 +205,12 @@ try:
                 use_destination_embedding_in_message=args.use_destination_embedding_in_message,
                 use_source_embedding_in_message=args.use_source_embedding_in_message,
                 dyrep=args.dyrep,
-                use_position=args.use_position,
+                beta=args.beta,
                 position_dim=POSITION_DIM,
                 position_embedding_dim=POSITION_EMBEDDING_DIM)
     criterion = torch.nn.BCELoss()
     optimizer = torch.optim.Adam(tgn.parameters(), lr=LEARNING_RATE)
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=18, gamma=0.1)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.1)
     tgn = tgn.to(device)
 
     num_instance = len(train_data.sources)

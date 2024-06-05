@@ -24,7 +24,7 @@ class PTGN(torch.nn.Module):
                use_destination_embedding_in_message=False,
                use_source_embedding_in_message=False,
                dyrep=False,
-               use_position=False, position_dim=8, position_embedding_dim=16):
+               beta=0.1, position_dim=8, position_embedding_dim=16):
     super(PTGN, self).__init__()
 
     self.n_layers = n_layers
@@ -54,7 +54,6 @@ class PTGN(torch.nn.Module):
     self.mean_time_shift_dst = mean_time_shift_dst
     self.std_time_shift_dst = std_time_shift_dst
 
-    self.use_position = use_position
     self.position_dim = position_dim
     self.position_memory = None
     if self.use_memory:
@@ -110,7 +109,7 @@ class PTGN(torch.nn.Module):
                                                  n_heads=n_heads, dropout=dropout,
                                                  use_memory=use_memory,
                                                  n_neighbors=self.n_neighbors,
-                                                 use_position=use_position,
+                                                 beta=beta,
                                                  position_dim=position_dim,
                                                  position_embedding_dim=position_embedding_dim)
 
@@ -238,9 +237,8 @@ class PTGN(torch.nn.Module):
         self.memory.store_raw_messages(unique_sources, source_id_to_messages)
         self.memory.store_raw_messages(unique_destinations, destination_id_to_messages)
 
-        if self.use_position:
-          self.position_memory.store_raw_messages(unique_position_sources, source_id_to_position_messages)
-          self.position_memory.store_raw_messages(unique_position_destinations, destination_id_to_position_messages)
+        self.position_memory.store_raw_messages(unique_position_sources, source_id_to_position_messages)
+        self.position_memory.store_raw_messages(unique_position_destinations, destination_id_to_position_messages)
       else:
         self.update_memory(unique_sources, source_id_to_messages)
         self.update_memory(unique_destinations, destination_id_to_messages)
@@ -249,11 +247,6 @@ class PTGN(torch.nn.Module):
         self.update_position_memory(unique_position_destinations, destination_id_to_position_messages)
 
       if self.dyrep:
-        # if self.use_position:
-        #   source_node_embedding = torch.cat([memory[source_nodes], position_memory[source_nodes]], dim=1)
-        #   destination_node_embedding = torch.cat([memory[destination_nodes], position_memory[destination_nodes]], dim=1)
-        #   negative_node_embedding = torch.cat([memory[negative_nodes], position_memory[negative_nodes]], dim=1)
-        # else:
         source_node_embedding = memory[source_nodes]
         destination_node_embedding = memory[destination_nodes]
         negative_node_embedding = memory[negative_nodes]

@@ -363,7 +363,7 @@ class PositionAttentionEmbedding(GraphEmbedding):
                n_time_features, embedding_dimension, device, num_nodes: int,
                n_heads=2, dropout=0.1, use_memory=True,
                alpha=2, beta=0.1, step=2,
-               position_dim=8, position_embedding_dim=16):
+               position_dim=8, position_embedding_dim=12):
       super(PositionAttentionEmbedding, self).__init__(node_features, edge_features, memory,
                                                       neighbor_finder, time_encoder, n_layers,
                                                       n_node_features, n_edge_features,
@@ -565,8 +565,8 @@ def get_embedding_module(module_type, node_features, edge_features,
                          n_edge_features, n_time_features,
                          embedding_dimension, device,
                          n_heads=2, dropout=0.1, n_neighbors=None,
-                         use_memory=True, use_position=False,
-                         position_dim=8, position_embedding_dim=16):
+                         use_memory=True, beta=0.1,
+                         position_dim=4, position_embedding_dim=12):
 
   if module_type == "graph_attention":
     module = GraphAttentionEmbedding(node_features=node_features,
@@ -638,6 +638,7 @@ def get_embedding_module(module_type, node_features, edge_features,
                                         num_nodes=node_features.shape[0],
                                         n_heads=n_heads, dropout=dropout,
                                         use_memory=use_memory,
+                                        beta=beta,
                                         position_dim=position_dim,
                                         position_embedding_dim=position_embedding_dim)
 
