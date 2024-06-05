@@ -1,8 +1,8 @@
-# TGN: Temporal Graph Networks [[arXiv](https://arxiv.org/abs/2006.10637), [YouTube](https://www.youtube.com/watch?v=W1GvX2ZcUmY), [Blog Post](https://towardsdatascience.com/temporal-graph-networks-ab8f327f2efe)] 
+# TGN: Temporal Graph Networks [[arXiv](https://arxiv.org/abs/2006.10637), [YouTube](https://www.youtube.com/watch?v=W1GvX2ZcUmY), [Blog Post](https://towardsdatascience.com/temporal-graph-networks-ab8f327f2efe)]
 
-Dynamic Graph             |  TGN	
-:-------------------------:|:-------------------------:	
-![](figures/dynamic_graph.png)  |  ![](figures/tgn.png)	
+Dynamic Graph             |  TGN
+:-------------------------:|:-------------------------:
+![](figures/dynamic_graph.png)  |  ![](figures/tgn.png)
 
 
 
@@ -10,8 +10,8 @@ Dynamic Graph             |  TGN
 ## Introduction
 
 Despite the plethora of different models for deep learning on graphs, few approaches have been proposed thus far for dealing with graphs that present some sort of dynamic nature (e.g. evolving features or connectivity over time).
- 
-In this paper, we present Temporal Graph Networks (TGNs), a generic, efficient framework for deep learning on dynamic graphs represented as sequences of timed events. Thanks to a novel combination of memory modules and graph-based operators, TGNs are able to significantly outperform previous approaches being at the same time more computationally efficient. 
+
+In this paper, we present Temporal Graph Networks (TGNs), a generic, efficient framework for deep learning on dynamic graphs represented as sequences of timed events. Thanks to a novel combination of memory modules and graph-based operators, TGNs are able to significantly outperform previous approaches being at the same time more computationally efficient.
 
 We furthermore show that several previous models for learning on dynamic graphs can be cast as specific instances of our framework. We perform a detailed ablation study of different components of our framework and devise the best configuration that achieves state-of-the-art performance on several transductive and inductive prediction tasks for dynamic graphs.
 
@@ -35,15 +35,20 @@ scikit_learn==0.23.1
 
 #### Download the public data
 Download the sample datasets (eg. wikipedia and reddit) from
-[here](http://snap.stanford.edu/jodie/) and store their csv files in a folder named
+* Wikipedia: http://snap.stanford.edu/jodie/wikipedia.csv
+* Reddit: http://snap.stanford.edu/jodie/reddit.csv
+* MOOC: http://snap.stanford.edu/jodie/mooc.csv
+
+store their csv files in a folder named
 ```data/```.
 
 #### Preprocess the data
-We use the dense `npy` format to save the features in binary format. If edge features or nodes 
-features are absent, they will be replaced by a vector of zeros. 
+We use the dense `npy` format to save the features in binary format. If edge features or nodes
+features are absent, they will be replaced by a vector of zeros.
 ```{bash}
 python utils/preprocess_data.py --data wikipedia --bipartite
 python utils/preprocess_data.py --data reddit --bipartite
+python utils/preprocess_data.py --data mooc --bipartite
 ```
 
 
@@ -59,7 +64,7 @@ python train_self_supervised.py --use_memory --prefix tgn-attn --n_runs 10
 python train_self_supervised.py -d reddit --use_memory --prefix tgn-attn-reddit --n_runs 10
 ```
 
-Supervised learning on dynamic node classification (this requires a trained model from 
+Supervised learning on dynamic node classification (this requires a trained model from
 the self-supervised task, by eg. running the commands above):
 ```{bash}
 # TGN-attn: self-supervised learning on the wikipedia dataset
@@ -113,13 +118,13 @@ python train_supervised.py -d reddit --use_memory --memory_updater rnn  --dyrep 
 Commands to replicate all results in the ablation study over different modules:
 ```{bash}
 # TGN-2l
-python train_self_supervised.py --use_memory --n_layer 2 --prefix tgn-2l --n_runs 10 
+python train_self_supervised.py --use_memory --n_layer 2 --prefix tgn-2l --n_runs 10
 
 # TGN-no-mem
-python train_self_supervised.py --prefix tgn-no-mem --n_runs 10 
+python train_self_supervised.py --prefix tgn-no-mem --n_runs 10
 
 # TGN-time
-python train_self_supervised.py --use_memory --embedding_module time --prefix tgn-time --n_runs 10 
+python train_self_supervised.py --use_memory --embedding_module time --prefix tgn-time --n_runs 10
 
 # TGN-id
 python train_self_supervised.py --use_memory --embedding_module identity --prefix tgn-id --n_runs 10
@@ -165,11 +170,11 @@ optional arguments:
   --dyrep                      Whether to run the model as DyRep
 ```
 
-## TODOs 
-* Make code memory efficient: for the sake of simplicity, the memory module of the TGN model is 
-implemented as a parameter (so that it is stored and loaded together of the model). However, this 
-does not need to be the case, and 
-more efficient implementations which treat the models as just tensors (in the same way as the 
+## TODOs
+* Make code memory efficient: for the sake of simplicity, the memory module of the TGN model is
+implemented as a parameter (so that it is stored and loaded together of the model). However, this
+does not need to be the case, and
+more efficient implementations which treat the models as just tensors (in the same way as the
 input features) would be more amenable to large graphs.
 
 ## Cite us
@@ -177,11 +182,9 @@ input features) would be more amenable to large graphs.
 ```bibtex
 @inproceedings{tgn_icml_grl2020,
     title={Temporal Graph Networks for Deep Learning on Dynamic Graphs},
-    author={Emanuele Rossi and Ben Chamberlain and Fabrizio Frasca and Davide Eynard and Federico 
+    author={Emanuele Rossi and Ben Chamberlain and Fabrizio Frasca and Davide Eynard and Federico
     Monti and Michael Bronstein},
     booktitle={ICML 2020 Workshop on Graph Representation Learning},
     year={2020}
 }
 ```
-
-
