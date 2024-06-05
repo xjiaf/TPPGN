@@ -404,14 +404,14 @@ class PositionAttentionEmbedding(GraphEmbedding):
         nn.Embedding(num_nodes, position_dim),
         nn.Linear(position_dim, position_dim),
         nn.ReLU(),
-        nn.Linear(position_dim, position_dim)
+        nn.Linear(position_dim, position_dim // 2)
       )
       self.position_decoder = nn.Sequential(
-        nn.Linear(position_dim, position_embedding_dim // 2),
+        nn.Linear(position_dim // 2, position_dim),
         nn.ReLU(),
-        nn.Linear(position_embedding_dim // 2, position_embedding_dim),
+        nn.Linear(position_dim, position_embedding_dim),
         # nn.ReLU(),
-        # nn.Linear(position_embedding_dim, position_embedding_dim)
+        # nn.Linear(position_embedding_dim // 2, position_embedding_dim)
       )
       self.alpha = alpha
       self.beta = torch.nn.Parameter(torch.tensor(beta), requires_grad=False)
