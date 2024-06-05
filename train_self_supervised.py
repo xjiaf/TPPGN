@@ -9,6 +9,7 @@ import numpy as np
 import pickle
 from pathlib import Path
 from datetime import datetime
+import subprocess
 
 from evaluation.evaluation import eval_edge_prediction
 from model.tgn import TGN
@@ -64,8 +65,17 @@ parser.add_argument('--use_source_embedding_in_message', action='store_true',
 parser.add_argument('--dyrep', action='store_true',
                     help='Whether to run the dyrep model')
 parser.add_argument('--use_position', '-p', action='store_true', help='Whether to use position encoding')
-parser.add_argument('--position_dim', "-pd", type=int, default=8, help='Dimensions of the position encoding')
+parser.add_argument('--position_dim', "-pd", type=int, default=4, help='Dimensions of the position encoding')
 parser.add_argument('--position_embedding_dim', '-ped', type=int, default=12, help='Dimensions of the position decoding')
+
+
+def get_git_revision_hash():
+    try:
+        # 使用git命令获取当前commit的哈希值
+        return subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode('ascii').strip()
+    except subprocess.CalledProcessError:
+        return "Unknown"
+
 
 try:
   args = parser.parse_args()
@@ -120,6 +130,7 @@ ch.setFormatter(formatter)
 logger.addHandler(fh)
 logger.addHandler(ch)
 logger.info(args)
+logger.info(f'Git hash: {get_git_revision_hash()}')
 
 try:
   ### Extract data for training, validation and testing

@@ -401,15 +401,15 @@ class PositionAttentionEmbedding(GraphEmbedding):
       #                                       for _ in range(n_layers)])
       # Integrated position embedding functionality
       self.position_encoder = nn.Sequential(
-        nn.Embedding(num_nodes, position_dim),
-        nn.Linear(position_dim, position_dim),
+        nn.Embedding(num_nodes, position_dim * 2),
+        nn.Linear(position_dim * 2, position_dim * 2),
         nn.ReLU(),
-        nn.Linear(position_dim, position_dim // 2)
+        nn.Linear(position_dim * 2, position_dim)
       )
       self.position_decoder = nn.Sequential(
-        nn.Linear(position_dim // 2, position_dim),
+        nn.Linear(position_dim, position_dim * 2),
         nn.ReLU(),
-        nn.Linear(position_dim, position_embedding_dim),
+        nn.Linear(position_dim * 2, position_embedding_dim),
         # nn.ReLU(),
         # nn.Linear(position_embedding_dim // 2, position_embedding_dim)
       )
