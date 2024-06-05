@@ -23,9 +23,9 @@ parser.add_argument('-d', '--data', type=str, help='Dataset name (eg. wikipedia 
                     default='wikipedia')
 parser.add_argument('--seed', "-s", type=int, default=16, help='seed')
 parser.add_argument('--bs', type=int, default=200, help='Batch_size')
-parser.add_argument('--prefix', type=str, default='', help='Prefix to name the checkpoints')
+parser.add_argument('--prefix', type=str, default='ptgn-attn', help='Prefix to name the checkpoints')
 parser.add_argument('--n_degree', type=int, default=10, help='Number of neighbors to sample')
-parser.add_argument('--n_head', type=int, default=2, help='Number of heads used in attention layer')
+parser.add_argument('--n_head', type=int, default=4, help='Number of heads used in attention layer')
 parser.add_argument('--n_epoch', type=int, default=50, help='Number of epochs')
 parser.add_argument('--n_layer', type=int, default=1, help='Number of network layers')
 parser.add_argument('--lr', type=float, default=0.0001, help='Learning rate')
@@ -69,6 +69,7 @@ parser.add_argument('--beta', type=float, default=0.0001, help='Initial value fo
 parser.add_argument('--use_position', '-p', action='store_true', help='Whether to use position encoding')
 parser.add_argument('--position_dim', "-pd", type=int, default=4, help='Dimensions of the position encoding')
 parser.add_argument('--position_embedding_dim', '-ped', type=int, default=12, help='Dimensions of the position decoding')
+parser.add_argument('--scheduler', type=int, default=100, help='Step size for the scheduler')
 
 
 def get_git_revision_hash():
@@ -104,6 +105,7 @@ MESSAGE_DIM = args.message_dim
 MEMORY_DIM = args.memory_dim
 POSITION_DIM = args.position_dim
 POSITION_EMBEDDING_DIM = args.position_embedding_dim
+LRSTEP = args.scheduler
 
 Path("./saved_models/").mkdir(parents=True, exist_ok=True)
 Path("./saved_checkpoints/").mkdir(parents=True, exist_ok=True)
@@ -166,7 +168,7 @@ try:
     compute_time_statistics(full_data.sources, full_data.destinations, full_data.timestamps)
 
   for i in range(args.n_runs):
-    results_path = "results/{}_{}.pkl".format(args.prefix, i) if i > 0 else "results/{}.pkl".format(args.prefix)
+    results_path = f"results/{args.prefix}_{args.data}_{i}.pkl" if i > 0 else f"results/{args.prefix}_{args.data}.pkl"
     Path("results/").mkdir(parents=True, exist_ok=True)
 
     # Initialize Model
@@ -209,7 +211,7 @@ try:
                 position_embedding_dim=POSITION_EMBEDDING_DIM)
     criterion = torch.nn.BCELoss()
     optimizer = torch.optim.Adam(tgn.parameters(), lr=LEARNING_RATE)
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.1)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=LRSTEP, gamma=0.1)
     tgn = tgn.to(device)
 
     num_instance = len(train_data.sources)
