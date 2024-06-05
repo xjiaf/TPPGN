@@ -73,7 +73,6 @@ parser.add_argument('--position_embedding_dim', '-ped', type=int, default=12, he
 
 def get_git_revision_hash():
     try:
-        # 使用git命令获取当前commit的哈希值
         return subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode('ascii').strip()
     except subprocess.CalledProcessError:
         return "Unknown"
