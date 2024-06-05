@@ -532,7 +532,7 @@ class PositionAttentionEmbedding(GraphEmbedding):
     neighbor_embeddings = reshaped_neighbors_embedding.view(neighbor_embeddings.shape[0], neighbor_embeddings.shape[1], -1)
 
     # aggregate node features
-    source_node_features = torch.cat([source_node_features, source_position_decoding], dim=1)
+    source_node_features = torch.cat([source_node_features, updated_source_position_decoding], dim=1)
     neighbor_embeddings = torch.cat([neighbor_embeddings, neighbors_position_decoding], dim=2)
     attention_model = self.attention_models[n_layer - 1]
     source_features_embedding, _ = attention_model(source_node_features,
