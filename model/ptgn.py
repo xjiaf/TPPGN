@@ -12,11 +12,11 @@ from modules.embedding_module import get_embedding_module
 from model.time_encoding import TimeEncode
 
 
-class PTGN(torch.nn.Module):
+class TPPGN(torch.nn.Module):
   def __init__(self, neighbor_finder, node_features, edge_features, device, n_layers=2,
                n_heads=2, dropout=0.1, use_memory=False,
                memory_update_at_start=True, message_dimension=100,
-               memory_dimension=500, embedding_module_type="position",
+               memory_dimension=500, embedding_module_type="position_attn",
                message_function="mlp",
                mean_time_shift_src=0, std_time_shift_src=1, mean_time_shift_dst=0,
                std_time_shift_dst=1, n_neighbors=None, aggregator_type="last",
@@ -24,8 +24,9 @@ class PTGN(torch.nn.Module):
                use_destination_embedding_in_message=False,
                use_source_embedding_in_message=False,
                dyrep=False,
-               beta=0.1, position_dim=8, position_embedding_dim=16):
-    super(PTGN, self).__init__()
+               alpha=2, beta=0.0001, step=2,
+               position_dim=8, position_embedding_dim=16):
+    super(TPPGN, self).__init__()
 
     self.n_layers = n_layers
     self.neighbor_finder = neighbor_finder
@@ -109,7 +110,7 @@ class PTGN(torch.nn.Module):
                                                  n_heads=n_heads, dropout=dropout,
                                                  use_memory=use_memory,
                                                  n_neighbors=self.n_neighbors,
-                                                 beta=beta,
+                                                 alpha=alpha, beta=beta, step=step,
                                                  position_dim=position_dim,
                                                  position_embedding_dim=position_embedding_dim)
 

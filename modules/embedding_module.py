@@ -151,106 +151,53 @@ class GraphEmbedding(EmbeddingModule):
     return NotImplemented
 
 
-class GraphSumEmbedding(GraphEmbedding):
-  def __init__(self, node_features, edge_features, memory, neighbor_finder, time_encoder, n_layers,
-               n_node_features, n_edge_features, n_time_features, embedding_dimension, device,
-               n_heads=2, dropout=0.1, use_memory=True):
-    super(GraphSumEmbedding, self).__init__(node_features=node_features,
-                                            edge_features=edge_features,
-                                            memory=memory,
-                                            neighbor_finder=neighbor_finder,
-                                            time_encoder=time_encoder, n_layers=n_layers,
-                                            n_node_features=n_node_features,
-                                            n_edge_features=n_edge_features,
-                                            n_time_features=n_time_features,
-                                            embedding_dimension=embedding_dimension,
-                                            device=device,
-                                            n_heads=n_heads, dropout=dropout,
-                                            use_memory=use_memory)
-    self.linear_1 = torch.nn.ModuleList([torch.nn.Linear(embedding_dimension + n_time_features +
-                                                         n_edge_features, embedding_dimension)
-                                         for _ in range(n_layers)])
-    self.linear_2 = torch.nn.ModuleList(
-      [torch.nn.Linear(embedding_dimension + n_node_features + n_time_features,
-                       embedding_dimension) for _ in range(n_layers)])
-
-  def aggregate(self, n_layer, source_node_features, source_nodes_time_embedding,
-                neighbor_embeddings,
-                edge_time_embeddings, edge_features, mask):
-    neighbors_features = torch.cat([neighbor_embeddings, edge_time_embeddings, edge_features],
-                                   dim=2)
-    neighbor_embeddings = self.linear_1[n_layer - 1](neighbors_features)
-    neighbors_sum = torch.nn.functional.relu(torch.sum(neighbor_embeddings, dim=1))
-
-    source_features = torch.cat([source_node_features,
-                                 source_nodes_time_embedding.squeeze()], dim=1)
-    source_embedding = torch.cat([neighbors_sum, source_features], dim=1)
-    source_embedding = self.linear_2[n_layer - 1](source_embedding)
-
-    return source_embedding
-
-
-class GraphAttentionEmbedding(GraphEmbedding):
-  def __init__(self, node_features, edge_features, memory, neighbor_finder, time_encoder, n_layers,
-               n_node_features, n_edge_features, n_time_features, embedding_dimension, device,
-               n_heads=2, dropout=0.1, use_memory=True):
-    super(GraphAttentionEmbedding, self).__init__(node_features, edge_features, memory,
-                                                  neighbor_finder, time_encoder, n_layers,
-                                                  n_node_features, n_edge_features,
-                                                  n_time_features,
-                                                  embedding_dimension, device,
-                                                  n_heads, dropout,
-                                                  use_memory)
-
-    self.attention_models = torch.nn.ModuleList([TemporalAttentionLayer(
-      n_node_features=n_node_features,
-      n_neighbors_features=n_node_features,
-      n_edge_features=n_edge_features,
-      time_dim=n_time_features,
-      n_head=n_heads,
-      dropout=dropout,
-      output_dimension=n_node_features)
-      for _ in range(n_layers)])
-
-  def aggregate(self, n_layer, source_node_features, source_nodes_time_embedding,
-                neighbor_embeddings,
-                edge_time_embeddings, edge_features, mask):
-    attention_model = self.attention_models[n_layer - 1]
-
-    source_embedding, _ = attention_model(source_node_features,
-                                          source_nodes_time_embedding,
-                                          neighbor_embeddings,
-                                          edge_time_embeddings,
-                                          edge_features,
-                                          mask)
-
-    return source_embedding
-
-
-class PositionEmbedding(GraphEmbedding):
+class PositionSumEmbedding(GraphEmbedding):
   def __init__(self, node_features, edge_features, memory, neighbor_finder,
                time_encoder, n_layers, n_node_features, n_edge_features,
                n_time_features, embedding_dimension, device, num_nodes: int,
                n_heads=2, dropout=0.1, use_memory=True,
-               node_embedding_module=None, alpha=2.0, beta=0.1,
-               position_embedding_dim=100):
-      super(PositionEmbedding, self).__init__(node_features, edge_features, memory,
-                                              neighbor_finder, time_encoder, n_layers,
-                                              n_node_features, n_edge_features,
-                                              n_time_features,
-                                              embedding_dimension, device,
-                                              n_heads, dropout,
-                                              use_memory)
+               alpha=2, beta=0.0001, step=2,
+               position_dim=8, position_embedding_dim=12):
+      super(PositionSumEmbedding, self).__init__(node_features, edge_features, memory,
+                                                 neighbor_finder, time_encoder, n_layers,
+                                                 n_node_features, n_edge_features,
+                                                 n_time_features,
+                                                 embedding_dimension, device,
+                                                 n_heads, dropout,
+                                                 use_memory)
+
+      self.linear_1 = torch.nn.ModuleList([torch.nn.Linear(n_node_features + position_embedding_dim*2,
+                                                           embedding_dimension) for _ in range(n_layers)])
+      self.linear_11 = torch.nn.ModuleList([torch.nn.Linear(embedding_dimension, embedding_dimension)
+                                            for _ in range(n_layers)])
+      self.linear_2 = torch.nn.ModuleList([torch.nn.Linear(n_node_features + position_embedding_dim,
+                                                           embedding_dimension) for _ in range(n_layers)])
+      self.linear_22 = torch.nn.ModuleList([torch.nn.Linear(embedding_dimension, embedding_dimension)
+                                            for _ in range(n_layers)])
+
+      self.linear_sum1 = torch.nn.ModuleList([torch.nn.Linear(embedding_dimension + n_time_features +
+                                                         n_edge_features, embedding_dimension)
+                                          for _ in range(n_layers)])
+      self.linear_sum2 = torch.nn.ModuleList([torch.nn.Linear(embedding_dimension + n_node_features + n_time_features,
+                                          embedding_dimension) for _ in range(n_layers)])
 
       # Integrated position embedding functionality
-      self.position_embedding = nn.Embedding(num_nodes, position_embedding_dim)
-      if node_embedding_module is not None:
-        self.node_embedding_module = node_embedding_module
-      else:
-        raise ValueError("Node embedding module must be provided")
-
+      self.position_encoder = nn.Sequential(
+        nn.Embedding(num_nodes, position_dim * 2),
+        nn.Linear(position_dim * 2, position_dim * 2),
+        nn.ReLU(),
+        nn.Linear(position_dim * 2, position_dim)
+      )
+      self.position_decoder = nn.Sequential(
+        nn.Linear(position_dim, position_dim * 2),
+        nn.ReLU(),
+        nn.Linear(position_dim * 2, position_embedding_dim),
+        # nn.ReLU(),
+        # nn.Linear(position_embedding_dim // 2, position_embedding_dim)
+      )
       self.alpha = alpha
       self.beta = torch.nn.Parameter(torch.tensor(beta), requires_grad=False)
+      self.step = step
 
   def compute_embedding(self, memory, source_nodes, timestamps, n_layers,
                         n_neighbors=20, time_diffs=None, use_time_proj=True,
@@ -271,14 +218,15 @@ class PositionEmbedding(GraphEmbedding):
     if self.use_memory:
       source_node_features = memory[source_nodes, :] + source_node_features
 
+    self.position_features = self.position_encoder(source_nodes_torch)
     if position_memory is None:
-      source_position_messages = self.position_embedding(source_nodes_torch)
+      source_position_features = self.position_features
     else:
-      source_position_messages = position_memory[source_nodes, :] + \
-        self.position_embedding(source_nodes_torch)
+      source_position_features = position_memory[source_nodes, :] + \
+        self.position_features
 
     source_node_features = torch.cat([source_node_features,
-                                      source_position_messages], dim=1)
+                                      source_position_features], dim=1)
 
     if n_layers == 0:
       return source_node_features
@@ -331,29 +279,65 @@ class PositionEmbedding(GraphEmbedding):
                 neighbor_embeddings,
                 edge_time_embeddings, edge_features, mask,
                 timestamps):
+    source_position_encoding = source_node_features[:, self.embedding_dimension:]
+    neighbors_position_encoding = neighbor_embeddings[:, :, self.embedding_dimension:]
+    source_position_decoding = self.position_decoder(source_position_encoding)
+    neighbors_position_decoding = self.position_decoder(neighbors_position_encoding)
 
-    source_features_embedding = self.node_embedding_module.aggregate(
-      n_layer, source_node_features[:, :self.embedding_dimension],
-      source_nodes_time_embedding,
-      neighbor_embeddings[:, :, :self.embedding_dimension],
-      edge_time_embeddings,
-      edge_features,
-      mask)
+    # Aggregate position features
+    updated_source_position_encoding = self.position_aggregator(source_position_encoding,
+                                                                neighbors_position_encoding,
+                                                                mask,
+                                                                timestamps)
+    updated_source_position_decoding = self.position_decoder(updated_source_position_encoding)
 
-    source_position_embedding = source_node_features[:, self.embedding_dimension:]
-    neighbors_position_features = neighbor_embeddings[:, :, self.embedding_dimension:]
-    mask = ~mask
+    # source node features decoder
+    source_node_features = torch.cat([source_node_features[:, :self.embedding_dimension],
+                                      source_position_decoding,
+                                      updated_source_position_decoding], dim=1)
+    source_node_features = self.linear_1[n_layer - 1](source_node_features)
+    source_node_features = torch.relu(source_node_features)
+    source_node_features = self.linear_11[n_layer - 1](source_node_features)
+
+    # neighbor node features decoder
+    neighbors_features = torch.cat([neighbor_embeddings[:, :, :self.embedding_dimension], neighbors_position_decoding], dim=2)
+    reshaped_neighbors_embedding = self.linear_2[n_layer - 1](neighbors_features.view(-1, neighbors_features.shape[-1]))
+    reshaped_neighbors_embedding = torch.relu(reshaped_neighbors_embedding)
+    reshaped_neighbors_embedding = self.linear_22[n_layer - 1](reshaped_neighbors_embedding)
+    neighbor_embeddings = reshaped_neighbors_embedding.view(neighbor_embeddings.shape[0], neighbor_embeddings.shape[1], -1)
+
+    # aggregate node features
+    source_embedding = self.feature_aggregate(n_layer, source_node_features,
+                                              source_nodes_time_embedding,
+                                              neighbor_embeddings,
+                                              edge_time_embeddings,
+                                              edge_features,
+                                              mask)
+    source_embedding = torch.cat([source_embedding, updated_source_position_encoding], dim=1)
+    return source_embedding
+
+  def position_aggregator(self, source_position_encoding, neighbors_position_encoding, mask, timestamps):
+    position_mask = ~mask
     timestamps = timestamps.unsqueeze(-1)
-    number_neighbors = torch.sum(mask, dim=1).unsqueeze(-1).unsqueeze(-1)
+    number_neighbors = torch.sum(position_mask, dim=1).unsqueeze(-1).unsqueeze(-1)
+    neighbors_position_sum = neighbors_position_encoding * (self.alpha ** (
+      -torch.relu(self.beta * (timestamps)) / torch.sqrt(number_neighbors + 1e-4))) * self.step
+    neighbors_position_sum = torch.sum(neighbors_position_sum * position_mask.unsqueeze(-1), dim=1)
+    updated_source_position_encoding = neighbors_position_sum + source_position_encoding
+    return updated_source_position_encoding
 
-    neighbors_position_sum = neighbors_position_features * (self.alpha ** (
-      -torch.relu(self.beta * (timestamps)) / torch.sqrt(number_neighbors + 1e-4)))
+  def feature_aggregate(self, n_layer, source_node_features, source_nodes_time_embedding,
+                        neighbor_embeddings,
+                        edge_time_embeddings, edge_features, mask):
+    neighbors_features = torch.cat([neighbor_embeddings, edge_time_embeddings, edge_features],
+                                   dim=2)
+    neighbor_embeddings = self.linear_sum1[n_layer - 1](neighbors_features)
+    neighbors_sum = torch.nn.functional.relu(torch.sum(neighbor_embeddings, dim=1))
 
-    neighbors_position_sum = torch.sum(neighbors_position_sum * mask.unsqueeze(-1), dim=1)
-
-    source_position_embedding = neighbors_position_sum + source_position_embedding
-
-    source_embedding = torch.cat([source_features_embedding, source_position_embedding], dim=1)
+    source_features = torch.cat([source_node_features,
+                                 source_nodes_time_embedding.squeeze()], dim=1)
+    source_embedding = torch.cat([neighbors_sum, source_features], dim=1)
+    source_embedding = self.linear_sum2[n_layer - 1](source_embedding)
     return source_embedding
 
 
@@ -362,7 +346,7 @@ class PositionAttentionEmbedding(GraphEmbedding):
                time_encoder, n_layers, n_node_features, n_edge_features,
                n_time_features, embedding_dimension, device, num_nodes: int,
                n_heads=2, dropout=0.1, use_memory=True,
-               alpha=2, beta=0.1, step=2,
+               alpha=2, beta=0.0001, step=2,
                position_dim=8, position_embedding_dim=12):
       super(PositionAttentionEmbedding, self).__init__(node_features, edge_features, memory,
                                                       neighbor_finder, time_encoder, n_layers,
@@ -391,13 +375,9 @@ class PositionAttentionEmbedding(GraphEmbedding):
                                                   output_dimension=n_node_features)
                                                   for _ in range(n_layers)])
 
-      self.linear_3 = torch.nn.ModuleList([torch.nn.Linear(n_node_features + position_embedding_dim,
-                                                           embedding_dimension) for _ in range(n_layers)])
-      self.linear_33 = torch.nn.ModuleList([torch.nn.Linear(embedding_dimension, embedding_dimension)
-                                            for _ in range(n_layers)])
-      # self.linear_4 = torch.nn.ModuleList([torch.nn.Linear(embedding_dimension,
+      # self.linear_3 = torch.nn.ModuleList([torch.nn.Linear(n_node_features + position_embedding_dim,
       #                                                      embedding_dimension) for _ in range(n_layers)])
-      # self.linear_44 = torch.nn.ModuleList([torch.nn.Linear(embedding_dimension, embedding_dimension)
+      # self.linear_33 = torch.nn.ModuleList([torch.nn.Linear(embedding_dimension, embedding_dimension)
       #                                       for _ in range(n_layers)])
       # Integrated position embedding functionality
       self.position_encoder = nn.Sequential(
@@ -510,7 +490,6 @@ class PositionAttentionEmbedding(GraphEmbedding):
     updated_source_position_decoding = self.position_decoder(updated_source_position_encoding)
 
     # source node features decoder
-    # source_node_features = torch.cat([source_node_features[:, :self.embedding_dimension], source_position_decoding], dim=1)
     source_node_features = torch.cat([source_node_features[:, :self.embedding_dimension],
                                       source_position_decoding,
                                       updated_source_position_decoding], dim=1)
@@ -526,11 +505,6 @@ class PositionAttentionEmbedding(GraphEmbedding):
     neighbor_embeddings = reshaped_neighbors_embedding.view(neighbor_embeddings.shape[0], neighbor_embeddings.shape[1], -1)
 
     # aggregate node features
-    # source_node_features = torch.cat([source_node_features[:, :self.embedding_dimension],
-    #                                   source_position_decoding,
-    #                                   updated_source_position_decoding], dim=1)
-    # neighbor_embeddings = torch.cat([neighbor_embeddings[:, :, :self.embedding_dimension],
-    #                                  neighbors_position_decoding], dim=2)
     attention_model = self.attention_models[n_layer - 1]
     source_embedding, _ = attention_model(source_node_features,
                                           source_nodes_time_embedding,
@@ -542,9 +516,6 @@ class PositionAttentionEmbedding(GraphEmbedding):
     # source_embedding = self.linear_3[n_layer - 1](source_embedding)
     # source_embedding = torch.relu(source_embedding)
     # source_embedding = self.linear_33[n_layer - 1](source_embedding)
-    # source_embedding = self.linear_4[n_layer - 1](source_embedding)
-    # source_embedding = torch.relu(source_embedding)
-    # source_embedding = self.linear_44[n_layer - 1](source_embedding)
     source_embedding = torch.cat([source_embedding, updated_source_position_encoding], dim=1)
     return source_embedding
 
@@ -565,65 +536,11 @@ def get_embedding_module(module_type, node_features, edge_features,
                          n_edge_features, n_time_features,
                          embedding_dimension, device,
                          n_heads=2, dropout=0.1, n_neighbors=None,
-                         use_memory=True, beta=0.1,
+                         use_memory=True,
+                         alpha=2, beta=0.0001, step=2,
                          position_dim=4, position_embedding_dim=12):
 
-  if module_type == "graph_attention":
-    module = GraphAttentionEmbedding(node_features=node_features,
-                                    edge_features=edge_features,
-                                    memory=memory,
-                                    neighbor_finder=neighbor_finder,
-                                    time_encoder=time_encoder,
-                                    n_layers=n_layers,
-                                    n_node_features=n_node_features,
-                                    n_edge_features=n_edge_features,
-                                    n_time_features=n_time_features,
-                                    embedding_dimension=embedding_dimension,
-                                    device=device,
-                                    n_heads=n_heads, dropout=dropout,
-                                    use_memory=use_memory)
-  elif module_type == "graph_sum":
-    module = GraphSumEmbedding(node_features=node_features,
-                              edge_features=edge_features,
-                              memory=memory,
-                              neighbor_finder=neighbor_finder,
-                              time_encoder=time_encoder,
-                              n_layers=n_layers,
-                              n_node_features=n_node_features,
-                              n_edge_features=n_edge_features,
-                              n_time_features=n_time_features,
-                              embedding_dimension=embedding_dimension,
-                              device=device,
-                              n_heads=n_heads, dropout=dropout, use_memory=use_memory)
-
-  elif module_type == "identity":
-    module = IdentityEmbedding(node_features=node_features,
-                             edge_features=edge_features,
-                             memory=memory,
-                             neighbor_finder=neighbor_finder,
-                             time_encoder=time_encoder,
-                             n_layers=n_layers,
-                             n_node_features=n_node_features,
-                             n_edge_features=n_edge_features,
-                             n_time_features=n_time_features,
-                             embedding_dimension=embedding_dimension,
-                             device=device,
-                             dropout=dropout)
-  elif module_type == "time":
-    module = TimeEmbedding(node_features=node_features,
-                         edge_features=edge_features,
-                         memory=memory,
-                         neighbor_finder=neighbor_finder,
-                         time_encoder=time_encoder,
-                         n_layers=n_layers,
-                         n_node_features=n_node_features,
-                         n_edge_features=n_edge_features,
-                         n_time_features=n_time_features,
-                         embedding_dimension=embedding_dimension,
-                         device=device,
-                         dropout=dropout,
-                         n_neighbors=n_neighbors)
-  elif module_type == "position":
+  if module_type == "position_attn":
     module = PositionAttentionEmbedding(node_features=node_features,
                                         edge_features=edge_features,
                                         memory=memory,
@@ -638,29 +555,27 @@ def get_embedding_module(module_type, node_features, edge_features,
                                         num_nodes=node_features.shape[0],
                                         n_heads=n_heads, dropout=dropout,
                                         use_memory=use_memory,
-                                        beta=beta,
+                                        alpha=alpha, beta=beta, step=step,
                                         position_dim=position_dim,
                                         position_embedding_dim=position_embedding_dim)
-
+  elif module_type == "position_sum":
+    module = PositionSumEmbedding(node_features=node_features,
+                                  edge_features=edge_features,
+                                  memory=memory,
+                                  neighbor_finder=neighbor_finder,
+                                  time_encoder=time_encoder,
+                                  n_layers=n_layers,
+                                  n_node_features=n_node_features,
+                                  n_edge_features=n_edge_features,
+                                  n_time_features=n_time_features,
+                                  embedding_dimension=embedding_dimension,
+                                  device=device,
+                                  num_nodes=node_features.shape[0],
+                                  n_heads=n_heads, dropout=dropout,
+                                  use_memory=use_memory,
+                                  alpha=alpha, beta=beta, step=step,
+                                  position_dim=position_dim,
+                                  position_embedding_dim=position_embedding_dim)
   else:
     raise ValueError("Embedding Module {} not supported".format(module_type))
-
-  # if use_position:
-  #   module = PositionEmbedding(node_features=node_features,
-  #                              edge_features=edge_features,
-  #                              memory=memory,
-  #                              neighbor_finder=neighbor_finder,
-  #                              time_encoder=time_encoder,
-  #                              n_layers=n_layers,
-  #                              n_node_features=n_node_features,
-  #                              n_edge_features=n_edge_features,
-  #                              n_time_features=n_time_features,
-  #                              embedding_dimension=embedding_dimension,
-  #                              device=device,
-  #                              num_nodes=node_features.shape[0],
-  #                              n_heads=n_heads, dropout=dropout,
-  #                              use_memory=use_memory,
-  #                              node_embedding_module=module,
-  #                              position_embedding_dim=position_embedding_dim)
-
   return module

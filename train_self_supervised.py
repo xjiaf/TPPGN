@@ -13,17 +13,17 @@ import subprocess
 
 from evaluation.evaluation import eval_edge_prediction
 from model.tgn import TGN
-from model.ptgn import PTGN
+from model.ptgn import TPPGN
 from utils.utils import EarlyStopMonitor, RandEdgeSampler, get_neighbor_finder
 from utils.data_processing import get_data, compute_time_statistics
 
 ### Argument and global variables
-parser = argparse.ArgumentParser('TGN self-supervised training')
+parser = argparse.ArgumentParser('TPPGN self-supervised training')
 parser.add_argument('-d', '--data', type=str, help='Dataset name (eg. wikipedia or reddit)',
                     default='wikipedia')
 parser.add_argument('--seed', "-s", type=int, default=16, help='seed')
 parser.add_argument('--bs', type=int, default=200, help='Batch_size')
-parser.add_argument('--prefix', type=str, default='ptgn-attn', help='Prefix to name the checkpoints')
+parser.add_argument('--prefix', type=str, default='tppgn-attn', help='Prefix to name the checkpoints')
 parser.add_argument('--n_degree', type=int, default=10, help='Number of neighbors to sample')
 parser.add_argument('--n_head', type=int, default=4, help='Number of heads used in attention layer')
 parser.add_argument('--n_epoch', type=int, default=50, help='Number of epochs')
@@ -35,23 +35,24 @@ parser.add_argument('--drop_out', type=float, default=0.1, help='Dropout probabi
 parser.add_argument('--gpu', type=int, default=0, help='Idx for the gpu to use')
 parser.add_argument('--node_dim', type=int, default=100, help='Dimensions of the node embedding')
 parser.add_argument('--time_dim', type=int, default=100, help='Dimensions of the time embedding')
-parser.add_argument('--backprop_every', type=int, default=1, help='Every how many batches to '
-                                                                  'backprop')
+parser.add_argument('--backprop_every', type=int, default=1,
+                    help='Every how many batches to backprop')
 parser.add_argument('--use_memory', action='store_true',
                     help='Whether to augment the model with a node memory')
-parser.add_argument('--embedding_module', type=str, default="graph_attention", choices=[
-  "graph_attention", "graph_sum", "identity", "time"], help='Type of embedding module')
-parser.add_argument('--message_function', type=str, default="identity", choices=[
-  "mlp", "identity"], help='Type of message function')
-parser.add_argument('--memory_updater', type=str, default="gru", choices=[
-  "gru", "rnn"], help='Type of memory updater')
-parser.add_argument('--aggregator', type=str, default="last", help='Type of message '
-                                                                        'aggregator')
+parser.add_argument('--embedding_module', type=str, default="position_attn",
+                    choices=["position_attn", "position_sum"],
+                    help='Type of embedding module')
+parser.add_argument('--message_function', type=str, default="identity", choices=["mlp", "identity"],
+                    help='Type of message function')
+parser.add_argument('--memory_updater', type=str, default="gru", choices=["gru", "rnn"],
+                    help='Type of memory updater')
+parser.add_argument('--aggregator', type=str, default="last", help='Type of message aggregator')
 parser.add_argument('--memory_update_at_end', action='store_true',
                     help='Whether to update memory at the end or at the start of the batch')
-parser.add_argument('--message_dim', type=int, default=100, help='Dimensions of the messages')
-parser.add_argument('--memory_dim', type=int, default=172, help='Dimensions of the memory for '
-                                                                'each user')
+parser.add_argument('--message_dim', type=int, default=100,
+                    help='Dimensions of the messages')
+parser.add_argument('--memory_dim', type=int, default=172,
+                    help='Dimensions of the memory for each user')
 parser.add_argument('--different_new_nodes', action='store_true',
                     help='Whether to use disjoint set of new nodes for train and val')
 parser.add_argument('--uniform', action='store_true',
@@ -65,8 +66,9 @@ parser.add_argument('--use_source_embedding_in_message', action='store_true',
 parser.add_argument('--dyrep', action='store_true',
                     help='Whether to run the dyrep model')
 
+parser.add_argument('--alpha', type=float, default=2, help='Initial value for the alpha parameter')
 parser.add_argument('--beta', type=float, default=0.0001, help='Initial value for the beta parameter')
-parser.add_argument('--use_position', '-p', action='store_true', help='Whether to use position encoding')
+parser.add_argument('--step', type=float, default=2, help='Step value for the position passing step')
 parser.add_argument('--position_dim', "-pd", type=int, default=4, help='Dimensions of the position encoding')
 parser.add_argument('--position_embedding_dim', '-ped', type=int, default=12, help='Dimensions of the position decoding')
 parser.add_argument('--scheduler', type=int, default=20, help='Step size for the scheduler')
@@ -172,8 +174,7 @@ try:
     Path("results/").mkdir(parents=True, exist_ok=True)
 
     # Initialize Model
-    if not args.use_position:
-      tgn = TGN(neighbor_finder=train_ngh_finder, node_features=node_features,
+    tgn = TPPGN(neighbor_finder=train_ngh_finder, node_features=node_features,
                 edge_features=edge_features, device=device,
                 n_layers=NUM_LAYER,
                 n_heads=NUM_HEADS, dropout=DROP_OUT, use_memory=USE_MEMORY,
@@ -188,25 +189,8 @@ try:
                 mean_time_shift_dst=mean_time_shift_dst, std_time_shift_dst=std_time_shift_dst,
                 use_destination_embedding_in_message=args.use_destination_embedding_in_message,
                 use_source_embedding_in_message=args.use_source_embedding_in_message,
-                dyrep=args.dyrep)
-    else:
-      tgn = PTGN(neighbor_finder=train_ngh_finder, node_features=node_features,
-                edge_features=edge_features, device=device,
-                n_layers=NUM_LAYER,
-                n_heads=NUM_HEADS, dropout=DROP_OUT, use_memory=USE_MEMORY,
-                message_dimension=MESSAGE_DIM, memory_dimension=MEMORY_DIM,
-                memory_update_at_start=not args.memory_update_at_end,
-                embedding_module_type="position",
-                message_function=args.message_function,
-                aggregator_type=args.aggregator,
-                memory_updater_type=args.memory_updater,
-                n_neighbors=NUM_NEIGHBORS,
-                mean_time_shift_src=mean_time_shift_src, std_time_shift_src=std_time_shift_src,
-                mean_time_shift_dst=mean_time_shift_dst, std_time_shift_dst=std_time_shift_dst,
-                use_destination_embedding_in_message=args.use_destination_embedding_in_message,
-                use_source_embedding_in_message=args.use_source_embedding_in_message,
                 dyrep=args.dyrep,
-                beta=args.beta,
+                alpha=args.alpha, beta=args.beta, step=args.step,
                 position_dim=POSITION_DIM,
                 position_embedding_dim=POSITION_EMBEDDING_DIM)
     criterion = torch.nn.BCELoss()
@@ -235,8 +219,7 @@ try:
       # Reinitialize memory of the model at the start of each epoch
       if USE_MEMORY:
         tgn.memory.__init_memory__()
-        if args.use_position:
-          tgn.position_memory.__init_memory__()
+        tgn.position_memory.__init_memory__()
 
       # Train using only training graph
       tgn.set_neighbor_finder(train_ngh_finder)
@@ -284,8 +267,7 @@ try:
         # the start of time
         if USE_MEMORY:
           tgn.memory.detach_memory()
-          if args.use_position:
-            tgn.position_memory.detach_memory()
+          tgn.position_memory.detach_memory()
 
       # Use scheduler
       scheduler.step()
@@ -300,8 +282,8 @@ try:
         # Backup memory at the end of training, so later we can restore it and use it for the
         # validation on unseen nodes
         train_memory_backup = tgn.memory.backup_memory()
-        if args.use_position:
-          train_position_memory_backup = tgn.position_memory.backup_memory()
+
+        train_position_memory_backup = tgn.position_memory.backup_memory()
 
       val_ap, val_auc = eval_edge_prediction(model=tgn,
                                              negative_edge_sampler=val_rand_sampler,
@@ -309,14 +291,14 @@ try:
                                              n_neighbors=NUM_NEIGHBORS)
       if USE_MEMORY:
         val_memory_backup = tgn.memory.backup_memory()
-        if args.use_position:
-          val_position_memory_backup = tgn.position_memory.backup_memory()
+
+        val_position_memory_backup = tgn.position_memory.backup_memory()
         # Restore memory we had at the end of training to be used when validating on new nodes.
         # Also backup memory after validation so it can be used for testing (since test edges are
         # strictly later in time than validation edges)
         tgn.memory.restore_memory(train_memory_backup)
-        if args.use_position:
-          tgn.position_memory.restore_memory(train_position_memory_backup)
+
+        tgn.position_memory.restore_memory(train_position_memory_backup)
 
       # Validate on unseen nodes
       nn_val_ap, nn_val_auc = eval_edge_prediction(model=tgn,
@@ -327,8 +309,8 @@ try:
       if USE_MEMORY:
         # Restore memory we had at the end of validation
         tgn.memory.restore_memory(val_memory_backup)
-        if args.use_position:
-          tgn.position_memory.restore_memory(val_position_memory_backup)
+
+        tgn.position_memory.restore_memory(val_position_memory_backup)
 
       new_nodes_val_aps.append(nn_val_ap)
       val_aps.append(val_ap)
@@ -370,8 +352,8 @@ try:
     # nodes
     if USE_MEMORY:
       val_memory_backup = tgn.memory.backup_memory()
-      if args.use_position:
-        val_position_memory_backup = tgn.position_memory.backup_memory()
+
+      val_position_memory_backup = tgn.position_memory.backup_memory()
 
     ### Test
     tgn.embedding_module.neighbor_finder = full_ngh_finder
@@ -382,8 +364,8 @@ try:
 
     if USE_MEMORY:
       tgn.memory.restore_memory(val_memory_backup)
-      if args.use_position:
-        tgn.position_memory.restore_memory(val_position_memory_backup)
+
+      tgn.position_memory.restore_memory(val_position_memory_backup)
 
     # Test on unseen nodes
     nn_test_ap, nn_test_auc = eval_edge_prediction(model=tgn,
@@ -410,8 +392,8 @@ try:
     if USE_MEMORY:
       # Restore memory at the end of validation (save a model which is ready for testing)
       tgn.memory.restore_memory(val_memory_backup)
-      if args.use_position:
-        tgn.position_memory.restore_memory(val_position_memory_backup)
+
+      tgn.position_memory.restore_memory(val_position_memory_backup)
 
     torch.save(tgn.state_dict(), MODEL_SAVE_PATH)
     logger.info('TGN model saved')

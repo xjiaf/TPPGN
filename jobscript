@@ -6,17 +6,17 @@ run_command() {
 
     # Use command based on dataset
     if [[ $data == "wikipedia" ]]; then
-        python train_self_supervised.py --use_memory --n_runs 10 --n_epoch 70 -p --n_head 4 --n_layer 2
+        python train_self_supervised.py --use_memory --n_runs 10 --n_epoch 70 --n_head 4 --n_layer 2
     elif [[ $data == "reddit" ]]; then
-        python train_self_supervised.py -d reddit --use_memory --n_runs 10 --n_epoch 70 -p --n_layer 1 --beta 0.00001
+        python train_self_supervised.py -d reddit --use_memory --n_runs 10 --n_epoch 70 --n_layer 1 --beta 0.00001
     elif [[ $data == "mooc" ]]; then
-        python train_self_supervised.py --data mooc --use_memory --n_runs 10 --n_epoch 70 -p --n_layer 2
+        python train_self_supervised.py --data mooc --use_memory --n_runs 10 --n_epoch 70 --n_layer 2
     elif [[ $data == "lastfm" ]]; then
-        python train_self_supervised.py --data lastfm --use_memory --n_runs 10 --n_epoch 70 -p --n_layer 2 -pd 64 -ped 128 --scheduler 25
+        python train_self_supervised.py --data lastfm --use_memory --n_runs 10 --n_epoch 70 --n_layer 2 -pd 64 -ped 128 --scheduler 25
     elif [[ $data == "wikipedia_fm" ]]; then
-        python train_self_supervised.py -d wikipedia_fm --use_memory --n_runs 10 --n_epoch 70 -p --n_head 4 --n_layer 2 -pd 64 -ped 128 --scheduler 20
+        python train_self_supervised.py -d wikipedia_fm --use_memory --n_runs 10 --n_epoch 70 --n_head 4 --n_layer 2 -pd 64 -ped 128 --scheduler 20
     elif [[ $data == "reddit_fm" ]]; then
-        python train_self_supervised.py -d reddit_fm --use_memory --n_runs 10 --n_epoch 70 -p --n_head 4 --n_layer 2 -pd 64 -ped 128 --scheduler 20
+        python train_self_supervised.py -d reddit_fm --use_memory --n_runs 10 --n_epoch 70 --n_head 4 --n_layer 2 -pd 64 -ped 128 --scheduler 20
     fi
 }
 
