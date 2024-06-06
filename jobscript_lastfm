@@ -5,21 +5,21 @@
 module load libs/cuda/11.7.0
 
 # Copy a directory of files from scratch to the GPU node's local NVMe storage
-cp -r ~/scratch/papers/ptgn/ $TMPDIR
+cp -r ~/scratch/papers/TPPGN/ $TMPDIR
 
 # Process the data with a GPU app, from within the local NVMe storage area
-cd $TMPDIR/ptgn/
+cd $TMPDIR/TPPGN/
 python train_self_supervised.py --data lastfm --use_memory --n_runs 10 --n_epoch 70 -p --n_layer 2 -pd 64 -ped 128
 # --beta 0.0001
 
 # Copy the results back to the main scratch area
-rsync -av $TMPDIR/ptgn/log/ ~/scratch/papers/ptgn/log/
-rsync -av $TMPDIR/ptgn/results/ ~/scratch/papers/ptgn/results/
-rsync -av $TMPDIR/ptgn/saved_checkpoints/ ~/scratch/papers/ptgn/saved_checkpoints/
-rsync -av $TMPDIR/ptgn/saved_models/ ~/scratch/papers/ptgn/saved_models/
+rsync -av $TMPDIR/TPPGN/log/ ~/scratch/papers/TPPGN/log/
+rsync -av $TMPDIR/TPPGN/results/ ~/scratch/papers/TPPGN/results/
+rsync -av $TMPDIR/TPPGN/saved_checkpoints/ ~/scratch/papers/TPPGN/saved_checkpoints/
+rsync -av $TMPDIR/TPPGN/saved_models/ ~/scratch/papers/TPPGN/saved_models/
 
 # The batch system will automatically delete the contents of $TMPDIR at the end of your job.
-cd ~/scratch/papers/ptgn/
+cd ~/scratch/papers/TPPGN/
 git pull
 git add ./log/
 git commit -m "logs updated"
