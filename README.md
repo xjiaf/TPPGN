@@ -1,10 +1,5 @@
 # TGN: Temporal Graph Networks [[arXiv](https://arxiv.org/abs/2006.10637), [YouTube](https://www.youtube.com/watch?v=W1GvX2ZcUmY), [Blog Post](https://towardsdatascience.com/temporal-graph-networks-ab8f327f2efe)]
 
-Dynamic Graph             |  TGN
-:-------------------------:|:-------------------------:
-![](figures/dynamic_graph.png)  |  ![](figures/tgn.png)
-
-
 
 
 ## Introduction
@@ -23,21 +18,17 @@ We furthermore show that several previous models for learning on dynamic graphs 
 
 ### Requirements
 
-Dependencies (with python >= 3.7):
-
-```{bash}
-pandas==1.1.0
-torch==1.6.0
-scikit_learn==0.23.1
-```
-
 ### Dataset and Preprocessing
+```{bash}
+pip install -r requirements.txt
+```
 
 #### Download the public data
 Download the sample datasets (eg. wikipedia and reddit) from
 * Wikipedia: http://snap.stanford.edu/jodie/wikipedia.csv
 * Reddit: http://snap.stanford.edu/jodie/reddit.csv
 * MOOC: http://snap.stanford.edu/jodie/mooc.csv
+* LastFM: http://snap.stanford.edu/jodie/lastfm.csv
 
 store their csv files in a folder named
 ```data/```.
@@ -49,8 +40,14 @@ features are absent, they will be replaced by a vector of zeros.
 python utils/preprocess_data.py --data wikipedia --bipartite
 python utils/preprocess_data.py --data reddit --bipartite
 python utils/preprocess_data.py --data mooc --bipartite
+python utils/preprocess_data.py --data lastfm --bipartite
 ```
 
+
+To produce feature-masked wikipedia dataset:
+```{bash}
+python utils/preprocess_data.py --data wikipedia --bipartite -fm
+```
 
 
 ### Model Training

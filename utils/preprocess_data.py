@@ -5,10 +5,11 @@ from pathlib import Path
 import argparse
 
 
-def preprocess(data_name):
+def preprocess(data_name, feat_mask=False):
   u_list, i_list, ts_list, label_list = [], [], [], []
   feat_l = []
   idx_list = []
+
 
   with open(data_name) as f:
     s = next(f)
@@ -19,8 +20,10 @@ def preprocess(data_name):
 
       ts = float(e[2])
       label = float(e[3])  # int(e[3])
-
-      feat = np.array([float(x) for x in e[4:]])
+      if feat_mask:
+        feat = np.array([0.0] * len(e[4:]))
+      else:
+        feat = np.array([float(x) for x in e[4:]])
 
       u_list.append(u)
       i_list.append(i)
@@ -57,14 +60,14 @@ def reindex(df, bipartite=True):
   return new_df
 
 
-def run(data_name, bipartite=True):
+def run(data_name, bipartite=True, feat_mask=False):
   Path("data/").mkdir(parents=True, exist_ok=True)
   PATH = './data/{}.csv'.format(data_name)
-  OUT_DF = './data/ml_{}.csv'.format(data_name)
-  OUT_FEAT = './data/ml_{}.npy'.format(data_name)
-  OUT_NODE_FEAT = './data/ml_{}_node.npy'.format(data_name)
+  OUT_DF = './data/ml_{}.csv'.format(data_name) if not feat_mask else './data/ml_{}_fm.csv'.format(data_name)
+  OUT_FEAT = './data/ml_{}.npy'.format(data_name) if not feat_mask else './data/ml_{}_fm.npy'.format(data_name)
+  OUT_NODE_FEAT = './data/ml_{}_node.npy'.format(data_name) if not feat_mask else './data/ml_{}_fm_node.npy'.format(data_name)
 
-  df, feat = preprocess(PATH)
+  df, feat = preprocess(PATH, feat_mask=feat_mask)
   new_df = reindex(df, bipartite)
 
   empty = np.zeros(feat.shape[1])[np.newaxis, :]
@@ -77,11 +80,13 @@ def run(data_name, bipartite=True):
   np.save(OUT_FEAT, feat)
   np.save(OUT_NODE_FEAT, rand_feat)
 
-parser = argparse.ArgumentParser('Interface for TGN data preprocessing')
+
+parser = argparse.ArgumentParser('Interface for TPPGN data preprocessing')
 parser.add_argument('--data', type=str, help='Dataset name (eg. wikipedia or reddit)',
                     default='wikipedia')
 parser.add_argument('--bipartite', action='store_true', help='Whether the graph is bipartite')
+parser.add_argument('--feat_mask', '-fm', action='store_true', help='Whether to use feature mask')
 
 args = parser.parse_args()
 
-run(args.data, bipartite=args.bipartite)
+run(args.data, bipartite=args.bipartite, feat_mask=args.feat_mask)
