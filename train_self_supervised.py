@@ -69,7 +69,7 @@ parser.add_argument('--beta', type=float, default=0.0001, help='Initial value fo
 parser.add_argument('--use_position', '-p', action='store_true', help='Whether to use position encoding')
 parser.add_argument('--position_dim', "-pd", type=int, default=4, help='Dimensions of the position encoding')
 parser.add_argument('--position_embedding_dim', '-ped', type=int, default=12, help='Dimensions of the position decoding')
-parser.add_argument('--scheduler', type=int, default=100, help='Step size for the scheduler')
+parser.add_argument('--scheduler', type=int, default=20, help='Step size for the scheduler')
 
 
 def get_git_revision_hash():
