@@ -39,7 +39,7 @@ parser.add_argument('--backprop_every', type=int, default=1,
                     help='Every how many batches to backprop')
 parser.add_argument('--use_memory', action='store_true',
                     help='Whether to augment the model with a node memory')
-parser.add_argument('--embedding_module', type=str, default="position_attn",
+parser.add_argument('--embedding_module', '-em',type=str, default="position_attn",
                     choices=["position_attn", "position_sum"],
                     help='Type of embedding module')
 parser.add_argument('--message_function', type=str, default="identity", choices=["mlp", "identity"],

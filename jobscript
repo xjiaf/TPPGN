@@ -3,20 +3,45 @@
 #$ -l nvidia_v100            # Can instead use 'nvidia_a100' for the A100 GPUs (if permitted!)
 run_command() {
     local data=$1
+    local embedding_module=$2
 
     # Use command based on dataset
     if [[ $data == "wikipedia" ]]; then
-        python train_self_supervised.py --use_memory --n_runs 10 --n_epoch 70 --n_head 4 --n_layer 2
+        if [[ $embedding_module == "sum" ]]; then
+            python train_self_supervised.py --use_memory --n_runs 10 --n_epoch 70 --n_head 4 --n_layer 2 -em "position_sum"
+        elif [[ $embedding_module == "attn" || $embedding_value == "" ]]; then
+            python train_self_supervised.py --use_memory --n_runs 10 --n_epoch 70 --n_head 4 --n_layer 2 -em "position_attn"
+        fi
     elif [[ $data == "reddit" ]]; then
-        python train_self_supervised.py -d reddit --use_memory --n_runs 10 --n_epoch 70 --n_layer 1 --beta 0.00001
+        if [[ $embedding_module == "sum" ]]; then
+            python train_self_supervised.py -d reddit --use_memory --n_runs 10 --n_epoch 70 --n_layer 1 --beta 0.00001 -em "position_sum"
+        elif [[ $embedding_module == "attn" || $embedding_value == "" ]]; then
+            python train_self_supervised.py -d reddit --use_memory --n_runs 10 --n_epoch 70 --n_layer 1 --beta 0.00001 -em "position_attn"
+        fi
     elif [[ $data == "mooc" ]]; then
-        python train_self_supervised.py --data mooc --use_memory --n_runs 10 --n_epoch 70 --n_layer 2
+        if [[ $embedding_module == "sum" ]]; then
+            python train_self_supervised.py --data mooc --use_memory --n_runs 10 --n_epoch 70 --n_layer 2 -em "position_sum"
+        elif [[ $embedding_module == "attn" || $embedding_value == "" ]]; then
+            python train_self_supervised.py --data mooc --use_memory --n_runs 10 --n_epoch 70 --n_layer 2 -em "position_attn"
+        fi
     elif [[ $data == "lastfm" ]]; then
-        python train_self_supervised.py --data lastfm --use_memory --n_runs 10 --n_epoch 70 --n_layer 2 -pd 64 -ped 128 --scheduler 25
+        if [[ $embedding_module == "sum" ]]; then
+            python train_self_supervised.py --data lastfm --use_memory --n_runs 10 --n_epoch 70 --n_layer 2 -pd 64 -ped 128 --scheduler 25 -em "position_sum"
+        elif [[ $embedding_module == "attn" || $embedding_value == "" ]]; then
+            python train_self_supervised.py --data lastfm --use_memory --n_runs 10 --n_epoch 70 --n_layer 2 -pd 64 -ped 128 --scheduler 25 -em "position_attn"
+        fi
     elif [[ $data == "wikipedia_fm" ]]; then
-        python train_self_supervised.py -d wikipedia_fm --use_memory --n_runs 10 --n_epoch 70 --n_head 4 --n_layer 2 -pd 64 -ped 128 --scheduler 20
+        if [[ $embedding_module == "sum" ]]; then
+            python train_self_supervised.py -d wikipedia_fm --use_memory --n_runs 10 --n_epoch 70 --n_head 4 --n_layer 2 -pd 64 -ped 128 --scheduler 20 -em "position_sum"
+        elif [[ $embedding_module == "attn" || $embedding_value == "" ]]; then
+            python train_self_supervised.py -d wikipedia_fm --use_memory --n_runs 10 --n_epoch 70 --n_head 4 --n_layer 2 -pd 64 -ped 128 --scheduler 20 -em "position_attn"
+        fi
     elif [[ $data == "reddit_fm" ]]; then
-        python train_self_supervised.py -d reddit_fm --use_memory --n_runs 10 --n_epoch 70 --n_head 4 --n_layer 2 -pd 64 -ped 128 --scheduler 20
+        if [[ $embedding_module == "sum" ]]; then
+            python train_self_supervised.py -d reddit_fm --use_memory --n_runs 10 --n_epoch 70 --n_head 4 --n_layer 2 -pd 64 -ped 128 --scheduler 20 -em "position_sum"
+        elif [[ $embedding_module == "attn" || $embedding_value == "" ]]; then
+            python train_self_supervised.py -d reddit_fm --use_memory --n_runs 10 --n_epoch 70 --n_head 4 --n_layer 2 -pd 64 -ped 128 --scheduler 20 -em "position_attn"
+        fi
     fi
 }
 
