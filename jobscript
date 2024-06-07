@@ -16,8 +16,7 @@ run_command() {
     elif [[ $data == "wikipedia_fm" ]]; then
         python train_self_supervised.py -d wikipedia_fm --use_memory --n_runs 10 --n_epoch 70 -p --n_head 4 --n_layer 2 -pd 64 -ped 128 --scheduler 20
     elif [[ $data == "reddit_fm" ]]; then
-        # Update this line with correct script and parameters
-        echo "Command for reddit_fm is commented out."
+        python train_self_supervised.py -d reddit_fm --use_memory --n_runs 10 --n_epoch 70 -p --n_head 4 --n_layer 2 -pd 64 -ped 128 --scheduler 20
     fi
 }
 
