@@ -44,9 +44,10 @@ python utils/preprocess_data.py --data lastfm --bipartite
 ```
 
 
-To produce feature-masked wikipedia dataset:
+To produce feature-masked wikipedia or reddit dataset:
 ```{bash}
 python utils/preprocess_data.py --data wikipedia --bipartite -fm
+python utils/preprocess_data.py --data reddit --bipartite -fm
 ```
 
 
