@@ -14,9 +14,9 @@ run_command() {
         fi
     elif [[ $data == "reddit" ]]; then
         if [[ $embedding_module == "sum" ]]; then
-            python train_self_supervised.py -d reddit --use_memory --n_runs 3 --n_epoch 70 --n_layer 2 --lr 0.001 --beta 0.0001 --scheduler 10 -em "position_sum"
+            python train_self_supervised.py -d reddit --use_memory --n_runs 3 --n_epoch 70 --n_layer 2 --lr 0.0001 --beta 0.00001 --scheduler 10 -em "position_sum"
         elif [[ $embedding_module == "attn" || $embedding_value == "" ]]; then
-            python train_self_supervised.py -d reddit --use_memory --n_runs 3 --n_epoch 70 --n_layer 2 --lr 0.001 --beta 0.0001 --scheduler 10 -em "position_attn"
+            python train_self_supervised.py -d reddit --use_memory --n_runs 3 --n_epoch 70 --n_layer 2 --lr 0.0001 --beta 0.00001 --scheduler 10 -em "position_attn"
         fi
     elif [[ $data == "mooc" ]]; then
         if [[ $embedding_module == "sum" ]]; then
