@@ -1,6 +1,7 @@
 from collections import defaultdict
 import torch
 import numpy as np
+from torch import nn
 
 
 class MessageAggregator(torch.nn.Module):
@@ -81,10 +82,48 @@ class MeanMessageAggregator(MessageAggregator):
     return to_update_node_ids, unique_messages, unique_timestamps
 
 
-def get_message_aggregator(aggregator_type, device):
+class PositionMessageAggregator(MessageAggregator):
+    def __init__(self, device, position_encoder):
+        super(PositionMessageAggregator, self).__init__(device)
+        self.position_encoder = position_encoder
+
+    def aggregate(self, node_ids, messages):
+        """
+        Aggregate messages using a custom exponential decay formula based on the timestamp.
+
+        :param node_ids: A list of node ids of length batch_size
+        :param messages: A tensor of shape [batch_size, message_length]
+        :param timestamps: A tensor of shape [batch_size]
+        :return: Tuple of unique node ids, aggregated messages, and their corresponding timestamps
+        """
+        unique_node_ids = np.unique(node_ids)
+        unique_messages = []
+        unique_timestamps = []
+
+        to_update_node_ids = []
+        n_messages = 0
+
+        for node_id in unique_node_ids:
+          if len(messages[node_id]) > 0:
+            n_messages += len(messages[node_id])
+            to_update_node_ids.append(node_id)
+            message = torch.sum(torch.stack([m[0] for m in messages[node_id]]), dim=0) / (
+              n_messages + 1e-4) ** 0.5 + self.position_encoder(torch.tensor(node_id).to(self.device))
+            unique_messages.append(message)
+            unique_timestamps.append(messages[node_id][-1][1])
+
+        unique_messages = torch.stack(unique_messages) if len(to_update_node_ids) > 0 else []
+        unique_timestamps = torch.stack(unique_timestamps) if len(to_update_node_ids) > 0 else []
+
+        return to_update_node_ids, unique_messages, unique_timestamps
+
+
+def get_message_aggregator(aggregator_type, device, position_encoder=None):
   if aggregator_type == "last":
     return LastMessageAggregator(device=device)
   elif aggregator_type == "mean":
     return MeanMessageAggregator(device=device)
+  elif aggregator_type == "position":
+    return PositionMessageAggregator(device=device, position_encoder=position_encoder)
   else:
     raise ValueError("Message aggregator {} not implemented".format(aggregator_type))

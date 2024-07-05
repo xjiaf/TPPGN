@@ -13,7 +13,8 @@ import subprocess
 
 from evaluation.evaluation import eval_edge_prediction
 from model.tgn import TGN
-from model.ptgn import TPPGN
+from model.ptgn import PTGN
+from model.tppgn import TPPGN
 from utils.utils import EarlyStopMonitor, RandEdgeSampler, get_neighbor_finder
 from utils.data_processing import get_data, compute_time_statistics
 
