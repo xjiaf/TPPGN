@@ -68,7 +68,7 @@ parser.add_argument('--dyrep', action='store_true',
                     help='Whether to run the dyrep model')
 
 parser.add_argument('--alpha', type=float, default=2, help='Initial value for the alpha parameter')
-parser.add_argument('--beta', type=float, default=0.0001, help='Initial value for the beta parameter')
+parser.add_argument('--beta', type=float, default=0.1, help='Initial value for the beta parameter')
 parser.add_argument('--step', type=float, default=2, help='Step value for the position passing step')
 parser.add_argument('--position_dim', "-pd", type=int, default=4, help='Dimensions of the position encoding')
 parser.add_argument('--position_embedding_dim', '-ped', type=int, default=12, help='Dimensions of the position decoding')
@@ -255,6 +255,8 @@ try:
           tgn = tgn.train()
           pos_prob, neg_prob = tgn.compute_edge_probabilities(sources_batch, destinations_batch, negatives_batch,
                                                               timestamps_batch, edge_idxs_batch, NUM_NEIGHBORS)
+          assert torch.all(pos_prob >= 0) and torch.all(pos_prob <= 1), "Values out of range"
+          assert torch.all(neg_prob >= 0) and torch.all(neg_prob <= 1), "Values out of range"
 
           loss += criterion(pos_prob.squeeze(), pos_label) + criterion(neg_prob.squeeze(), neg_label)
 

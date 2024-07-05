@@ -12,6 +12,7 @@ from modules.memory_updater import get_memory_updater
 from modules.embedding_module import get_embedding_module
 from model.time_encoding import TimeEncode
 
+TORCH_USE_CUDA_DSA=1
 
 class TPPGN(torch.nn.Module):
   def __init__(self, neighbor_finder, node_features, edge_features, device, n_layers=2,
@@ -389,8 +390,8 @@ class TPPGN(torch.nn.Module):
     # source_time_delta_encoding = self.position_time_encoder(source_time_delta.unsqueeze(dim=1)).view(len(
     #   source_nodes), -1)
 
-    source_message =  source_memory * (self.alpha ** (
-      -torch.relu(self.beta * (source_time_delta)))) + destination_memory + \
+    source_message =  (source_memory + destination_memory) * (self.alpha ** (
+      -torch.relu(self.beta * (source_time_delta))))  + \
         self.position_encoder(torch.LongTensor(destination_nodes).to(self.device))
     messages = defaultdict(list)
     unique_sources = np.unique(source_nodes)
