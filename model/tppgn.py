@@ -385,8 +385,9 @@ class TPPGN(torch.nn.Module):
     destination_memory = self.position_memory.get_memory(destination_nodes)
 
     source_time_delta = edge_times - self.position_memory.last_update[source_nodes]
-    source_time_delta_encoding = self.position_time_encoder(source_time_delta.unsqueeze(dim=1)).view(len(
-      source_nodes), -1)
+    source_time_delta = source_time_delta.unsqueeze(dim=1).view(len(source_nodes), -1)
+    # source_time_delta_encoding = self.position_time_encoder(source_time_delta.unsqueeze(dim=1)).view(len(
+    #   source_nodes), -1)
 
     source_message =  source_memory * (self.alpha ** (
       -torch.relu(self.beta * (source_time_delta)))) + destination_memory + \
