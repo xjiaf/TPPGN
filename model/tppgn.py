@@ -98,7 +98,7 @@ class TPPGN(torch.nn.Module):
                                     input_dimension=self.position_dim,
                                     message_dimension=self.position_dim,
                                     device=device)
-      self.position_message_aggregator = get_message_aggregator(aggregator_type="position",
+      self.position_message_aggregator = get_message_aggregator(aggregator_type="mean",
                                                                 device=device,
                                                                 position_encoder=self.position_encoder)
       self.position_message_function = get_message_function(module_type="identity",
@@ -389,7 +389,7 @@ class TPPGN(torch.nn.Module):
       source_nodes), -1)
 
     source_message =  source_memory * (self.alpha ** (
-      -torch.relu(self.beta * (source_time_delta_encoding)))) * self.step + destination_memory
+      -torch.relu(self.beta * (source_time_delta_encoding)))) + destination_memory + self.position_encoder(torch.LongTensor(destination_nodes).to(self.device))
     messages = defaultdict(list)
     unique_sources = np.unique(source_nodes)
 
