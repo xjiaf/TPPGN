@@ -389,7 +389,8 @@ class TPPGN(torch.nn.Module):
       source_nodes), -1)
 
     source_message =  source_memory * (self.alpha ** (
-      -torch.relu(self.beta * (source_time_delta_encoding)))) + destination_memory + self.position_encoder(torch.LongTensor(destination_nodes).to(self.device))
+      -torch.relu(self.beta * (source_time_delta)))) + destination_memory + \
+        self.position_encoder(torch.LongTensor(destination_nodes).to(self.device))
     messages = defaultdict(list)
     unique_sources = np.unique(source_nodes)
 

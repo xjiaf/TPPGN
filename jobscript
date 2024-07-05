@@ -1,6 +1,8 @@
 #!/bin/bash --login
 #$ -cwd
 #$ -l nvidia_v100            # Can instead use 'nvidia_a100' for the A100 GPUs (if permitted!)
+export CUDA_LAUNCH_BLOCKING=1
+export TORCH_USE_CUDA_DSA=1
 run_command() {
     local data=$1
     local embedding_module=$2
