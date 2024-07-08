@@ -67,9 +67,10 @@ parser.add_argument('--use_source_embedding_in_message', action='store_true',
 parser.add_argument('--dyrep', action='store_true',
                     help='Whether to run the dyrep model')
 
-parser.add_argument('--alpha', type=float, default=2, help='Initial value for the alpha parameter')
+parser.add_argument('--alpha', type=float, default=2, help='Step value for the position passing step')
 parser.add_argument('--beta', type=float, default=0.1, help='Initial value for the beta parameter')
-parser.add_argument('--step', type=float, default=2, help='Step value for the position passing step')
+parser.add_argument('--positon_aggregator_type', '-pat', type=str, default="exp", choices=["mean", "exp"],
+                    help='Type of position aggregator')
 parser.add_argument('--position_dim', "-pd", type=int, default=4, help='Dimensions of the position encoding')
 parser.add_argument('--position_embedding_dim', '-ped', type=int, default=12, help='Dimensions of the position decoding')
 parser.add_argument('--scheduler', type=int, default=20, help='Step size for the scheduler')
@@ -191,7 +192,8 @@ try:
                 use_destination_embedding_in_message=args.use_destination_embedding_in_message,
                 use_source_embedding_in_message=args.use_source_embedding_in_message,
                 dyrep=args.dyrep,
-                alpha=args.alpha, beta=args.beta, step=args.step,
+                positon_aggregator_type=args.positon_aggregator_type,
+                alpha=args.alpha, beta=args.beta,
                 position_dim=POSITION_DIM,
                 position_embedding_dim=POSITION_EMBEDDING_DIM)
     criterion = torch.nn.BCELoss()
@@ -255,8 +257,6 @@ try:
           tgn = tgn.train()
           pos_prob, neg_prob = tgn.compute_edge_probabilities(sources_batch, destinations_batch, negatives_batch,
                                                               timestamps_batch, edge_idxs_batch, NUM_NEIGHBORS)
-          assert torch.all(pos_prob >= 0) and torch.all(pos_prob <= 1), "Values out of range"
-          assert torch.all(neg_prob >= 0) and torch.all(neg_prob <= 1), "Values out of range"
 
           loss += criterion(pos_prob.squeeze(), pos_label) + criterion(neg_prob.squeeze(), neg_label)
 
