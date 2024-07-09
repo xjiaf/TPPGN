@@ -4,13 +4,13 @@ import numpy as np
 from torch import nn
 
 
-class PositionAggregator(torch.nn.Module):
+class MessageAggregator(torch.nn.Module):
   """
   Abstract class for the message aggregator module, which given a batch of node ids and
   corresponding messages, aggregates messages with the same node id.
   """
   def __init__(self, device):
-    super(PositionAggregator, self).__init__()
+    super(MessageAggregator, self).__init__()
     self.device = device
 
   def aggregate(self, node_ids, messages):
@@ -32,10 +32,11 @@ class PositionAggregator(torch.nn.Module):
     return node_id_to_messages
 
 
-class MeanPositionAggregator(PositionAggregator):
-  def __init__(self, device):
-    super(MeanPositionAggregator, self).__init__(device)
-
+class LastMeanPositionMessageAggregator(MessageAggregator):
+  def __init__(self, device, position_dim):
+    super(LastMeanPositionMessageAggregator, self).__init__(device)
+    self.position_dim = position_dim
+    self.position_message_dim = 2 * position_dim + 1
 
   def aggregate(self, node_ids, messages):
     """Only keep the last message for each node"""
@@ -44,19 +45,16 @@ class MeanPositionAggregator(PositionAggregator):
     unique_timestamps = []
 
     to_update_node_ids = []
-    n_messages = 0
 
     for node_id in unique_node_ids:
-      if len(messages[node_id]) > 0:
-        n_messages += len(messages[node_id])
-        message_dim = messages[node_id][0][0].shape[0]
-        position_dim = (message_dim - 1) // 2
-        to_update_node_ids.append(node_id)
-        neighbors = torch.stack([m[0][:position_dim] for m in messages[node_id]])
-        node_self = messages[node_id][0][0][position_dim:2*position_dim].unsqueeze(0)
-        all_neighbors = torch.cat((neighbors, node_self), dim=0)
-        unique_messages.append(torch.mean(all_neighbors, dim=0))
-        unique_timestamps.append(messages[node_id][-1][1])
+        if len(messages[node_id]) > 0:
+            to_update_node_ids.append(node_id)
+            node_message = messages[node_id][-1][0]
+            position_encoding = torch.mean(torch.stack([m[0][-self.position_message_dim:-(self.position_dim+1)]
+                                                        +m[0][-(self.position_dim+1):-1]
+                                                        for m in messages[node_id]]), dim=0)
+            unique_messages.append(torch.cat((node_message, position_encoding)))
+            unique_timestamps.append(messages[node_id][-1][1])
 
     unique_messages = torch.stack(unique_messages) if len(to_update_node_ids) > 0 else []
     unique_timestamps = torch.stack(unique_timestamps) if len(to_update_node_ids) > 0 else []
@@ -64,9 +62,75 @@ class MeanPositionAggregator(PositionAggregator):
     return to_update_node_ids, unique_messages, unique_timestamps
 
 
-class ExponentialPositionAggregator(PositionAggregator):
-    def __init__(self, device, alpha, beta):
-        super(ExponentialPositionAggregator, self).__init__(device)
+class MeanMeanPositionMessageAggregator(MessageAggregator):
+  def __init__(self, device, position_dim):
+    super(LastMeanPositionMessageAggregator, self).__init__(device)
+    self.position_dim = position_dim
+    self.position_message_dim = 2 * position_dim + 1
+
+  def aggregate(self, node_ids, messages):
+    """Only keep the last message for each node"""
+    unique_node_ids = np.unique(node_ids)
+    unique_messages = []
+    unique_timestamps = []
+
+    to_update_node_ids = []
+
+    for node_id in unique_node_ids:
+        if len(messages[node_id]) > 0:
+            to_update_node_ids.append(node_id)
+            unique_messages.append(
+               torch.mean(torch.stack([torch.cat((m[0][:self.position_message_dim],
+                                                  m[0][-self.position_message_dim:-(self.position_dim+1)]
+                                                  +m[0][-(self.position_dim+1):-1]), dim=0)
+                                                  for m in messages[node_id]]), dim=0))
+            unique_timestamps.append(messages[node_id][-1][1])
+
+    unique_messages = torch.stack(unique_messages) if len(to_update_node_ids) > 0 else []
+    unique_timestamps = torch.stack(unique_timestamps) if len(to_update_node_ids) > 0 else []
+
+    return to_update_node_ids, unique_messages, unique_timestamps
+
+
+class LastExponentialPositionMessageAggregator(MessageAggregator):
+  def __init__(self, device, position_dim, alpha, beta):
+    super(LastExponentialPositionMessageAggregator, self).__init__(device)
+    self.position_dim = position_dim
+    self.position_message_dim = 2 * position_dim + 1
+    self.alpha = alpha
+    self.beta = beta
+
+  def aggregate(self, node_ids, messages):
+    """Only keep the last message for each node"""
+    unique_node_ids = np.unique(node_ids)
+    unique_messages = []
+    unique_timestamps = []
+
+    to_update_node_ids = []
+
+    for node_id in unique_node_ids:
+        if len(messages[node_id]) > 0:
+            to_update_node_ids.append(node_id)
+            node_message = messages[node_id][-1][0]
+            position_encoding = torch.mean(torch.stack([m[0][-self.position_message_dim:-(self.position_dim+1)]
+                                                        *(self.alpha ** (-torch.relu(self.beta * m[0][-1])))
+                                                        +m[0][-(self.position_dim+1):-1]
+                                                        for m in messages[node_id]]), dim=0)
+
+            unique_messages.append(torch.cat((node_message, position_encoding)))
+            unique_timestamps.append(messages[node_id][-1][1])
+
+    unique_messages = torch.stack(unique_messages) if len(to_update_node_ids) > 0 else []
+    unique_timestamps = torch.stack(unique_timestamps) if len(to_update_node_ids) > 0 else []
+
+    return to_update_node_ids, unique_messages, unique_timestamps
+
+
+class MeanExponentialPositionMessageAggregator(MessageAggregator):
+    def __init__(self, device, position_dim, alpha, beta):
+        super(MeanExponentialPositionMessageAggregator, self).__init__(device)
+        self.position_dim = position_dim
+        self.position_message_dim = 2 * position_dim + 1
         self.alpha = alpha
         self.beta = beta
 
@@ -84,19 +148,16 @@ class ExponentialPositionAggregator(PositionAggregator):
         unique_timestamps = []
 
         to_update_node_ids = []
-        n_messages = 0
 
         for node_id in unique_node_ids:
           if len(messages[node_id]) > 0:
-            n_messages += len(messages[node_id])
-            message_dim = messages[node_id][0][0].shape[0]
-            position_dim = (message_dim - 1) // 2
             to_update_node_ids.append(node_id)
-            neighbors = torch.stack([m[0][:position_dim] * (self.alpha ** (
-              -torch.relu(self.beta * (m[0][2*position_dim:])))) for m in messages[node_id]])
-            node_self = messages[node_id][0][0][position_dim:2*position_dim].unsqueeze(0)
-            all_neighbors = torch.cat((neighbors, node_self), dim=0)
-            unique_messages.append(torch.mean(all_neighbors, dim=0))
+            unique_messages.append(
+               torch.mean(torch.stack([torch.cat((m[0][:self.position_message_dim],
+                                                  m[0][-self.position_message_dim:-(self.position_dim+1)] * \
+                                                    (self.alpha ** (-torch.relu(self.beta * m[0][-1]))) + \
+                                                      m[0][-(self.position_dim+1):-1]), dim=0)
+                                                  for m in messages[node_id]]), dim=0))
             unique_timestamps.append(messages[node_id][-1][1])
 
         unique_messages = torch.stack(unique_messages) if len(to_update_node_ids) > 0 else []
@@ -105,10 +166,21 @@ class ExponentialPositionAggregator(PositionAggregator):
         return to_update_node_ids, unique_messages, unique_timestamps
 
 
-def get_position_aggregator(aggregator_type, device, alpha=2, beta=1.0):
-  if aggregator_type == "mean":
-    return MeanPositionAggregator(device=device)
-  elif aggregator_type == "exp":
-    return ExponentialPositionAggregator(device=device, alpha=alpha, beta=beta)
+def get_position_message_aggregator(message_aggregator_type, device, position_aggregator_type,
+                                    position_dim, alpha=2, beta=1.0):
+  if message_aggregator_type == "mean" and position_aggregator_type == "exp":
+    return MeanExponentialPositionMessageAggregator(device=device,
+                                         position_dim=position_dim,
+                                         alpha=alpha,
+                                         beta=beta)
+  elif message_aggregator_type == "last" and position_aggregator_type == "exp":
+    return LastExponentialPositionMessageAggregator(device=device,
+                                         position_dim=position_dim,
+                                         alpha=alpha,
+                                         beta=beta)
+  elif message_aggregator_type == "mean" and position_aggregator_type == "mean":
+    return MeanMeanPositionMessageAggregator(device=device, position_dim=position_dim)
+  elif message_aggregator_type == "last" and position_aggregator_type == "mean":
+    return LastMeanPositionMessageAggregator(device=device, position_dim=position_dim)
   else:
-    raise ValueError("Message aggregator {} not implemented".format(aggregator_type))
+    raise ValueError(f"Message aggregator {message_aggregator_type} not recognized.")

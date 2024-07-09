@@ -6,14 +6,12 @@ from collections import defaultdict
 
 from utils.utils import MergeLayer
 from modules.memory import Memory
-from modules.message_aggregator import get_message_aggregator
-from modules.position_aggregator import get_position_aggregator
+from modules.position_aggregator import get_position_message_aggregator
 from modules.position_embedding_module import get_position_embedding_module
-from modules.message_function import get_message_function
-from modules.memory_updater import get_memory_updater
+from modules.position_message_function import get_position_message_function
+from modules.position_memory_updater import get_position_memory_updater
 from model.time_encoding import TimeEncode
 
-TORCH_USE_CUDA_DSA=1
 
 class TPPGN(torch.nn.Module):
   def __init__(self, neighbor_finder, node_features, edge_features, device, n_layers=2,
@@ -29,7 +27,7 @@ class TPPGN(torch.nn.Module):
                dyrep=False,
                positon_aggregator_type="exp",
                alpha=2, beta=1.0,
-               position_dim=8, position_embedding_dim=16):
+               position_dim=32, position_embedding_dim=64):
     super(TPPGN, self).__init__()
     self.use_memory=True
     self.n_layers = n_layers
@@ -59,7 +57,7 @@ class TPPGN(torch.nn.Module):
     self.std_time_shift_dst = std_time_shift_dst
 
     self.position_dim = position_dim
-    self.position_memory = None
+
     if self.use_memory:
       self.memory_dimension = memory_dimension
       self.memory_update_at_start = memory_update_at_start
@@ -67,20 +65,23 @@ class TPPGN(torch.nn.Module):
                               self.time_encoder.dimension
       message_dimension = message_dimension if message_function != "identity" else raw_message_dimension
       self.memory = Memory(n_nodes=self.n_nodes,
-                           memory_dimension=self.memory_dimension,
+                           memory_dimension=self.memory_dimension+self.position_dim,
                            input_dimension=message_dimension,
                            message_dimension=message_dimension,
                            device=device)
-      self.message_aggregator = get_message_aggregator(aggregator_type=aggregator_type,  #aggregator_type,
-                                                       device=device)
-      self.message_function = get_message_function(module_type=message_function,
-                                                   raw_message_dimension=raw_message_dimension,
-                                                   message_dimension=message_dimension)
-      self.memory_updater = get_memory_updater(module_type=memory_updater_type,
-                                               memory=self.memory,
-                                               message_dimension=message_dimension,
-                                               memory_dimension=self.memory_dimension,
-                                               device=device)
+      self.message_aggregator = get_position_message_aggregator(message_aggregator_type=aggregator_type,
+                                                                device=device,
+                                                                position_aggregator_type=positon_aggregator_type,
+                                                                position_dim=position_dim,
+                                                                alpha=alpha, beta=beta)
+      self.message_function = get_position_message_function(module_type=message_function,
+                                                            raw_message_dimension=raw_message_dimension,
+                                                            message_dimension=message_dimension)
+      self.memory_updater = get_position_memory_updater(module_type=memory_updater_type,
+                                                        memory=self.memory,
+                                                        message_dimension=message_dimension,
+                                                        memory_dimension=self.memory_dimension,
+                                                        device=device)
       # Position memory
       self.position_dim = position_dim  # position encoding dimension
       self.position_embedding_dim = position_embedding_dim  # position decoding dimension
@@ -91,24 +92,7 @@ class TPPGN(torch.nn.Module):
           nn.ReLU(),
           nn.Linear(position_dim * 2, position_dim)
         )
-      self.position_time_encoder = TimeEncode(dimension=position_dim)
 
-      self.position_memory = Memory(n_nodes=self.n_nodes,
-                                    memory_dimension=self.position_dim,
-                                    input_dimension=self.position_dim,
-                                    message_dimension=self.position_dim,
-                                    device=device)
-      self.position_message_aggregator = get_position_aggregator(aggregator_type=positon_aggregator_type,
-                                                                 device=device,
-                                                                 alpha=alpha, beta=beta)
-      self.position_message_function = get_message_function(module_type="identity",
-                                                            raw_message_dimension=self.position_dim,
-                                                            message_dimension=self.position_dim)
-      self.position_memory_updater = get_memory_updater(module_type="last",
-                                                        memory=self.position_memory,
-                                                        message_dimension=self.position_dim,
-                                                        memory_dimension=self.position_dim,
-                                                        device=device)
     self.embedding_module = get_position_embedding_module(module_type=embedding_module_type,
                                                           node_features=self.node_raw_features,
                                                           edge_features=self.edge_raw_features,
@@ -165,16 +149,10 @@ class TPPGN(torch.nn.Module):
         # Update memory for all nodes with messages stored in previous batches
         memory, last_update = self.get_updated_memory(list(range(self.n_nodes)),
                                                       self.memory.messages)
-        # print(self.position_memory.messages)
-        position_memory, last_pos_update = self.get_updated_position_memory(list(range(self.n_nodes)),
-                                                              self.position_memory.messages)
-        # if (last_pos_update != last_update).any():
-        #   mask = last_pos_update != last_update
-          # print(f"mask: {mask.sum()}")
+
       else:
         memory = self.memory.get_memory(list(range(self.n_nodes)))
         last_update = self.memory.last_update
-        position_memory = self.position_memory.get_memory(list(range(self.n_nodes)))
 
       ### Compute differences between the time the memory of a node was last updated,
       ### and the time for which we want to compute the embedding of a node
@@ -197,8 +175,7 @@ class TPPGN(torch.nn.Module):
                                                              timestamps=timestamps,
                                                              n_layers=self.n_layers,
                                                              n_neighbors=n_neighbors,
-                                                             time_diffs=time_diffs,
-                                                             position_memory=position_memory)
+                                                             time_diffs=time_diffs)
 
     source_node_embedding = node_embedding[:n_samples, :self.embedding_dimension]
     destination_node_embedding = node_embedding[n_samples: 2 * n_samples, :self.embedding_dimension]
@@ -210,17 +187,11 @@ class TPPGN(torch.nn.Module):
         # new messages for them)
         self.update_memory(positives, self.memory.messages)
 
-        # assert torch.allclose(memory[positives], self.memory.get_memory(positives), atol=1e-5), \
-        #   "Something wrong in how the memory was updated"
+        assert torch.allclose(memory[positives], self.memory.get_memory(positives), atol=1e-5), \
+          "Something wrong in how the memory was updated"
 
         # Remove messages for the positives since we have already updated the memory using them
         self.memory.clear_messages(positives)
-
-        self.update_position_memory(positives, self.position_memory.messages)
-        # assert torch.allclose(position_memory[positives], self.position_memory.get_memory(positives), atol=1e-5), \
-        #   "Something wrong in how the position memory was updated"
-
-        self.position_memory.clear_messages(positives)
 
       unique_sources, source_id_to_messages = self.get_raw_messages(source_nodes,
                                                                     source_node_embedding,
@@ -232,26 +203,12 @@ class TPPGN(torch.nn.Module):
                                                                               source_nodes,
                                                                               source_node_embedding,
                                                                               edge_times, edge_idxs)
-
-      unique_position_sources, source_id_to_position_messages = self.get_raw_position_messages(source_nodes,
-                                                                                               destination_nodes,
-                                                                                               edge_times)
-      unique_position_destinations, destination_id_to_position_messages = self.get_raw_position_messages(
-        destination_nodes,
-        source_nodes,
-        edge_times)
       if self.memory_update_at_start:
         self.memory.store_raw_messages(unique_sources, source_id_to_messages)
         self.memory.store_raw_messages(unique_destinations, destination_id_to_messages)
-
-        self.position_memory.store_raw_messages(unique_position_sources, source_id_to_position_messages)
-        self.position_memory.store_raw_messages(unique_position_destinations, destination_id_to_position_messages)
       else:
         self.update_memory(unique_sources, source_id_to_messages)
         self.update_memory(unique_destinations, destination_id_to_messages)
-
-        self.update_position_memory(unique_position_sources, source_id_to_position_messages)
-        self.update_position_memory(unique_position_destinations, destination_id_to_position_messages)
 
       if self.dyrep:
         source_node_embedding = memory[source_nodes]
@@ -326,13 +283,21 @@ class TPPGN(torch.nn.Module):
     destination_memory = self.memory.get_memory(destination_nodes) if \
       not self.use_destination_embedding_in_message else destination_node_embedding
 
+    source_node_memory = source_memory[:, :-self.position_dim]
+    destination_node_memory = destination_memory[:, :-self.position_dim]
+    source_position_memory = source_memory[:, -self.position_dim:]
+    destination_position_memory = destination_memory[:, -self.position_dim:]
+
     source_time_delta = edge_times - self.memory.last_update[source_nodes]
     source_time_delta_encoding = self.time_encoder(source_time_delta.unsqueeze(dim=1)).view(len(
       source_nodes), -1)
+    source_time_delta = source_time_delta.unsqueeze(dim=1).view(len(source_nodes), -1)
 
-    source_message = torch.cat([source_memory, destination_memory, edge_features,
-                                source_time_delta_encoding],
-                               dim=1)
+    destination_position_encoding = destination_position_memory + \
+      self.position_encoder(torch.LongTensor(destination_nodes).to(self.device))
+    source_message = torch.cat([source_node_memory, destination_node_memory, edge_features, source_time_delta_encoding,
+                                source_position_memory, destination_position_encoding, source_time_delta], dim=1)
+
     messages = defaultdict(list)
     unique_sources = np.unique(source_nodes)
 
@@ -344,54 +309,3 @@ class TPPGN(torch.nn.Module):
   def set_neighbor_finder(self, neighbor_finder):
     self.neighbor_finder = neighbor_finder
     self.embedding_module.neighbor_finder = neighbor_finder
-
-  def update_position_memory(self, nodes, messages):
-    # Aggregate messages for the same nodes
-    unique_nodes, unique_messages, unique_timestamps = \
-      self.position_message_aggregator.aggregate(
-        nodes,
-        messages)
-
-    if len(unique_nodes) > 0:
-      unique_messages = self.position_message_function.compute_message(unique_messages)
-
-    # Update the memory with the aggregated messages
-    self.position_memory_updater.update_memory(unique_nodes, unique_messages,
-                                               timestamps=unique_timestamps)
-
-  def get_updated_position_memory(self, nodes, messages):
-    # Aggregate messages for the same nodes
-    unique_nodes, unique_messages, unique_timestamps = \
-      self.position_message_aggregator.aggregate(
-        nodes,
-        messages)
-
-    if len(unique_nodes) > 0:
-      unique_messages = self.position_message_function.compute_message(unique_messages)
-
-    updated_memory, updated_last_update = self.position_memory_updater.get_updated_memory(unique_nodes,
-                                                                                          unique_messages,
-                                                                                          timestamps=unique_timestamps)
-
-    return updated_memory, updated_last_update
-
-  def get_raw_position_messages(self, source_nodes, destination_nodes, edge_times):
-    edge_times = torch.from_numpy(edge_times).float().to(self.device)
-
-    source_memory = self.position_memory.get_memory(source_nodes)
-    destination_memory = self.position_memory.get_memory(destination_nodes)
-
-    source_time_delta = edge_times - self.position_memory.last_update[source_nodes]
-    source_time_delta = source_time_delta.unsqueeze(dim=1).view(len(source_nodes), -1)
-    # source_time_delta_encoding = self.position_time_encoder(source_time_delta.unsqueeze(dim=1)).view(len(
-    #   source_nodes), -1)
-
-    destination_encoding = destination_memory + self.position_encoder(torch.LongTensor(destination_nodes).to(self.device))
-    source_message = torch.cat([source_memory, destination_encoding, source_time_delta], dim=1)
-    messages = defaultdict(list)
-    unique_sources = np.unique(source_nodes)
-
-    for i in range(len(source_nodes)):
-      messages[source_nodes[i]].append((source_message[i], edge_times[i]))
-
-    return unique_sources, messages

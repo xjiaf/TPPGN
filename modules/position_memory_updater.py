@@ -7,12 +7,13 @@ class MemoryUpdater(nn.Module):
     pass
 
 
-class SequenceMemoryUpdater(MemoryUpdater):
+class PositionMemoryUpdater(MemoryUpdater):
   def __init__(self, memory, message_dimension, memory_dimension, device):
-    super(SequenceMemoryUpdater, self).__init__()
+    super(PositionMemoryUpdater, self).__init__()
     self.memory = memory
-    self.layer_norm = torch.nn.LayerNorm(memory_dimension)
+    # self.layer_norm = torch.nn.LayerNorm(memory_dimension)
     self.message_dimension = message_dimension
+    self.memory_dimension = memory_dimension
     self.device = device
 
   def update_memory(self, unique_node_ids, unique_messages, timestamps):
@@ -25,7 +26,9 @@ class SequenceMemoryUpdater(MemoryUpdater):
     memory = self.memory.get_memory(unique_node_ids)
     self.memory.last_update[unique_node_ids] = timestamps
 
-    updated_memory = self.memory_updater(unique_messages, memory)
+    # updated_memory = self.memory_updater(unique_messages, memory)
+    updated_node_memory = self.memory_updater(unique_messages[:, :self.message_dimension], memory[:, :self.memory_dimension])
+    updated_memory = torch.cat((updated_node_memory, memory[:, self.memory_dimension:]), dim=1)
 
     self.memory.set_memory(unique_node_ids, updated_memory)
 
@@ -37,7 +40,11 @@ class SequenceMemoryUpdater(MemoryUpdater):
                                                                                      "update memory to time in the past" \
 
     updated_memory = self.memory.memory.data.clone()
-    updated_memory[unique_node_ids] = self.memory_updater(unique_messages, updated_memory[unique_node_ids])
+    # updated_memory[unique_node_ids] = self.memory_updater(unique_messages, updated_memory[unique_node_ids])
+    updated_node_memory = self.memory_updater(unique_messages[:, :self.message_dimension],
+                                              updated_memory[unique_node_ids][:, :self.memory_dimension])
+    updated_memory[unique_node_ids] = torch.cat((
+      updated_node_memory, updated_memory[unique_node_ids][:, self.memory_dimension:]), dim=1)
 
     updated_last_update = self.memory.last_update.data.clone()
     updated_last_update[unique_node_ids] = timestamps
@@ -45,42 +52,22 @@ class SequenceMemoryUpdater(MemoryUpdater):
     return updated_memory, updated_last_update
 
 
-class GRUMemoryUpdater(SequenceMemoryUpdater):
+class GRUPositionMemoryUpdater(PositionMemoryUpdater):
   def __init__(self, memory, message_dimension, memory_dimension, device):
-    super(GRUMemoryUpdater, self).__init__(memory, message_dimension, memory_dimension, device)
-
+    super(GRUPositionMemoryUpdater, self).__init__(memory, message_dimension, memory_dimension, device)
     self.memory_updater = nn.GRUCell(input_size=message_dimension,
                                      hidden_size=memory_dimension)
 
 
-class RNNMemoryUpdater(SequenceMemoryUpdater):
+class RNNPositionMemoryUpdater(PositionMemoryUpdater):
   def __init__(self, memory, message_dimension, memory_dimension, device):
-    super(RNNMemoryUpdater, self).__init__(memory, message_dimension, memory_dimension, device)
-
+    super(RNNPositionMemoryUpdater, self).__init__(memory, message_dimension, memory_dimension, device)
     self.memory_updater = nn.RNNCell(input_size=message_dimension,
                                      hidden_size=memory_dimension)
 
-class LastMemoryUpdater(SequenceMemoryUpdater):
-  def __init__(self, memory, message_dimension, memory_dimension, device):
-    super(LastMemoryUpdater, self).__init__(memory, message_dimension, memory_dimension, device)
-    self.memory_updater = IdentityUpdater(input_size=message_dimension,
-                                          hidden_size=memory_dimension)
 
-
-def get_memory_updater(module_type, memory, message_dimension, memory_dimension, device):
+def get_position_memory_updater(module_type, memory, message_dimension, memory_dimension, device):
   if module_type == "gru":
-    return GRUMemoryUpdater(memory, message_dimension, memory_dimension, device)
+    return GRUPositionMemoryUpdater(memory, message_dimension, memory_dimension, device)
   elif module_type == "rnn":
-    return RNNMemoryUpdater(memory, message_dimension, memory_dimension, device)
-  elif module_type == "last":
-    return LastMemoryUpdater(memory, message_dimension, memory_dimension, device)
-
-
-class IdentityUpdater(nn.Module):
-    def __init__(self, input_size, hidden_size):
-        super(IdentityUpdater, self).__init__()
-        self.input_size = input_size
-        self.hidden_size = hidden_size
-
-    def forward(self, input, hidden):
-        return input
+    return RNNPositionMemoryUpdater(memory, message_dimension, memory_dimension, device)

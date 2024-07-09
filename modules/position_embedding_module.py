@@ -194,7 +194,7 @@ class PositionAttentionEmbedding(GraphEmbedding):
         # nn.Linear(position_embedding_dim // 2, position_embedding_dim)
       )
 
-  def compute_embedding(self, memory, source_nodes, timestamps, n_layers, position_memory,
+  def compute_embedding(self, memory, source_nodes, timestamps, n_layers,
                         n_neighbors=20, time_diffs=None, use_time_proj=True):
 
     assert (n_layers >= 0)
@@ -208,13 +208,13 @@ class PositionAttentionEmbedding(GraphEmbedding):
       timestamps_torch))
 
     source_node_features = self.node_features[source_nodes_torch, :]
-    source_position_features = self.position_decoder(position_memory[source_nodes, :])
-    if self.use_memory:
-      source_node_features = memory[source_nodes, :] + source_node_features
 
+    if self.use_memory:
+      source_node_features = memory[source_nodes, :self.n_node_features] + source_node_features
+      source_position_decoding = self.position_decoder(memory[source_nodes, self.n_node_features:])
 
     source_node_features = torch.cat([source_node_features,
-                                      source_position_features], dim=1)
+                                      source_position_decoding], dim=1)
     if n_layers == 0:
       return source_node_features
     else:
@@ -222,8 +222,7 @@ class PositionAttentionEmbedding(GraphEmbedding):
                                                            source_nodes,
                                                            timestamps,
                                                            n_layers=n_layers-1,
-                                                           n_neighbors=n_neighbors,
-                                                           position_memory=position_memory)
+                                                           n_neighbors=n_neighbors)
 
       neighbors, edge_idxs, edge_times = self.neighbor_finder.get_temporal_neighbor(
         source_nodes,
@@ -243,8 +242,7 @@ class PositionAttentionEmbedding(GraphEmbedding):
                                                    neighbors,
                                                    np.repeat(timestamps, n_neighbors),
                                                    n_layers=n_layers - 1,
-                                                   n_neighbors=n_neighbors,
-                                                   position_memory=position_memory)
+                                                   n_neighbors=n_neighbors)
 
       effective_n_neighbors = n_neighbors if n_neighbors > 0 else 1
       neighbor_embeddings = neighbor_embeddings.view(len(source_nodes), effective_n_neighbors, -1)
@@ -294,13 +292,13 @@ class PositionAttentionEmbedding(GraphEmbedding):
 
 
 def get_position_embedding_module(module_type, node_features, edge_features,
-                         memory, neighbor_finder,
-                         time_encoder, n_layers, n_node_features,
-                         n_edge_features, n_time_features,
-                         embedding_dimension, device,
-                         n_heads=2, dropout=0.1, n_neighbors=None,
-                         use_memory=True,
-                         position_dim=4, position_embedding_dim=12):
+                                  memory, neighbor_finder,
+                                  time_encoder, n_layers, n_node_features,
+                                  n_edge_features, n_time_features,
+                                  embedding_dimension, device,
+                                  n_heads=2, dropout=0.1, n_neighbors=None,
+                                  use_memory=True,
+                                  position_dim=4, position_embedding_dim=12):
 
   if module_type == "position_attn":
     module = PositionAttentionEmbedding(node_features=node_features,
