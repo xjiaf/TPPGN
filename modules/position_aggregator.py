@@ -112,8 +112,8 @@ class LastExponentialPositionMessageAggregator(MessageAggregator):
         if len(messages[node_id]) > 0:
             to_update_node_ids.append(node_id)
             node_message = messages[node_id][-1][0]
-            position_encoding = torch.mean(torch.stack([m[0][-self.position_message_dim:-(self.position_dim+1)]
-                                                        *(self.alpha ** (-torch.relu(self.beta * m[0][-1])))
+            position_encoding = torch.mean(torch.stack([self.alpha * m[0][-self.position_message_dim:-(self.position_dim+1)]
+                                                        *(torch.exp(-torch.relu(self.beta * m[0][-1])))
                                                         +m[0][-(self.position_dim+1):-1]
                                                         for m in messages[node_id]]), dim=0)
 
@@ -154,8 +154,8 @@ class MeanExponentialPositionMessageAggregator(MessageAggregator):
             to_update_node_ids.append(node_id)
             unique_messages.append(
                torch.mean(torch.stack([torch.cat((m[0][:self.position_message_dim],
-                                                  m[0][-self.position_message_dim:-(self.position_dim+1)] * \
-                                                    (self.alpha ** (-torch.relu(self.beta * m[0][-1]))) + \
+                                                  self.alpha * m[0][-self.position_message_dim:-(self.position_dim+1)] * \
+                                                    (torch.exp(-torch.relu(self.beta * m[0][-1]))) + \
                                                       m[0][-(self.position_dim+1):-1]), dim=0)
                                                   for m in messages[node_id]]), dim=0))
             unique_timestamps.append(messages[node_id][-1][1])
