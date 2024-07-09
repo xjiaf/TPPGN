@@ -49,12 +49,14 @@ class MeanPositionAggregator(PositionAggregator):
     for node_id in unique_node_ids:
       if len(messages[node_id]) > 0:
         n_messages += len(messages[node_id])
+        message_dim = messages[node_id][0][0].shape[0]
+        position_dim = (message_dim - 1) // 2
         to_update_node_ids.append(node_id)
-        neighbors = torch.stack([m[0] for m in messages[node_id]])
-        node_self = messages[node_id][0][1].unsqueeze(0)
+        neighbors = torch.stack([m[0][:position_dim] for m in messages[node_id]])
+        node_self = messages[node_id][0][0][position_dim:2*position_dim].unsqueeze(0)
         all_neighbors = torch.cat((neighbors, node_self), dim=0)
         unique_messages.append(torch.mean(all_neighbors, dim=0))
-        unique_timestamps.append(messages[node_id][-1][-1])
+        unique_timestamps.append(messages[node_id][-1][1])
 
     unique_messages = torch.stack(unique_messages) if len(to_update_node_ids) > 0 else []
     unique_timestamps = torch.stack(unique_timestamps) if len(to_update_node_ids) > 0 else []
@@ -87,12 +89,15 @@ class ExponentialPositionAggregator(PositionAggregator):
         for node_id in unique_node_ids:
           if len(messages[node_id]) > 0:
             n_messages += len(messages[node_id])
+            message_dim = messages[node_id][0][0].shape[0]
+            position_dim = (message_dim - 1) // 2
             to_update_node_ids.append(node_id)
-            neighbors = torch.stack([m[0] * (self.alpha ** (-torch.relu(self.beta * (m[2])))) for m in messages[node_id]])
-            node_self = messages[node_id][0][1].unsqueeze(0)
+            neighbors = torch.stack([m[0][:position_dim] * (self.alpha ** (
+              -torch.relu(self.beta * (m[0][2*position_dim:])))) for m in messages[node_id]])
+            node_self = messages[node_id][0][0][position_dim:2*position_dim].unsqueeze(0)
             all_neighbors = torch.cat((neighbors, node_self), dim=0)
             unique_messages.append(torch.mean(all_neighbors, dim=0))
-            unique_timestamps.append(messages[node_id][-1][-1])
+            unique_timestamps.append(messages[node_id][-1][1])
 
         unique_messages = torch.stack(unique_messages) if len(to_update_node_ids) > 0 else []
         unique_timestamps = torch.stack(unique_timestamps) if len(to_update_node_ids) > 0 else []

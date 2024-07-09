@@ -165,7 +165,7 @@ class TPPGN(torch.nn.Module):
         # Update memory for all nodes with messages stored in previous batches
         memory, last_update = self.get_updated_memory(list(range(self.n_nodes)),
                                                       self.memory.messages)
-        # print(self.position_memory.messages)
+        print(self.position_memory.messages)
         position_memory, last_pos_update = self.get_updated_position_memory(list(range(self.n_nodes)),
                                                               self.position_memory.messages)
         # if (last_pos_update != last_update).any():
@@ -387,10 +387,11 @@ class TPPGN(torch.nn.Module):
     #   source_nodes), -1)
 
     destination_encoding = destination_memory + self.position_encoder(torch.LongTensor(destination_nodes).to(self.device))
+    source_message = torch.cat([source_memory, destination_encoding, source_time_delta], dim=1)
     messages = defaultdict(list)
     unique_sources = np.unique(source_nodes)
 
     for i in range(len(source_nodes)):
-      messages[source_nodes[i]].append((source_memory[i], destination_encoding[i], source_time_delta[i], edge_times[i]))
+      messages[source_nodes[i]].append((source_message[i], edge_times[i]))
 
     return unique_sources, messages
