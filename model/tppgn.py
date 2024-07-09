@@ -165,7 +165,7 @@ class TPPGN(torch.nn.Module):
         # Update memory for all nodes with messages stored in previous batches
         memory, last_update = self.get_updated_memory(list(range(self.n_nodes)),
                                                       self.memory.messages)
-        print(self.position_memory.messages)
+        # print(self.position_memory.messages)
         position_memory, last_pos_update = self.get_updated_position_memory(list(range(self.n_nodes)),
                                                               self.position_memory.messages)
         # if (last_pos_update != last_update).any():
