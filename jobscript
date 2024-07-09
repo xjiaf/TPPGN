@@ -9,9 +9,9 @@ run_command() {
     # Use command based on dataset
     if [[ $data == "wikipedia" ]]; then
         if [[ $position_agg == "mean" ]]; then
-            python train_self_supervised.py --use_memory --n_runs 10 --n_epoch 70 --n_head 4 --n_layer 2 -pat "mean" -pd 32 -ped 64 --alpha 2 --beta 1
+            python train_self_supervised.py --use_memory --n_runs 3 --n_epoch 70 --n_head 4 --n_layer 2 -pat "mean" -pd 32 -ped 64 --alpha 2 --beta 1
         elif [[ $position_agg == "exp" || $position_agg == "" ]]; then
-            python train_self_supervised.py --use_memory --n_runs 10 --n_epoch 70 --n_head 4 --n_layer 2 -pat "exp" -pd 32 -ped 64 --alpha 2 --beta 1
+            python train_self_supervised.py --use_memory --n_runs 3 --n_epoch 70 --n_head 4 --n_layer 2 -pat "exp" -pd 32 -ped 64 --alpha 2 --beta 1
         fi
     elif [[ $data == "reddit" ]]; then
         if [[ $position_agg == "mean" ]]; then
@@ -21,27 +21,27 @@ run_command() {
         fi
     elif [[ $data == "mooc" ]]; then
         if [[ $position_agg == "mean" ]]; then
-            python train_self_supervised.py --data mooc --use_memory --n_runs 10 --n_epoch 70 --n_layer 2 -pat "mean"
+            python train_self_supervised.py --data mooc --use_memory --n_runs 3 --n_epoch 70 --n_layer 2 -pat "mean"
         elif [[ $position_agg == "exp" || $position_agg == "" ]]; then
-            python train_self_supervised.py --data mooc --use_memory --n_runs 10 --n_epoch 70 --n_layer 2 -pat "exp"
+            python train_self_supervised.py --data mooc --use_memory --n_runs 3 --n_epoch 70 --n_layer 2 -pat "exp"
         fi
     elif [[ $data == "lastfm" ]]; then
         if [[ $position_agg == "mean" ]]; then
-            python train_self_supervised.py --data lastfm --use_memory --n_runs 10 --n_epoch 70 --n_layer 2 -pd 64 -ped 128 --scheduler 25 -pat "mean"
+            python train_self_supervised.py --data lastfm --use_memory --n_runs 3 --n_epoch 70 --n_layer 2 -pd 64 -ped 128 --scheduler 25 -pat "mean"
         elif [[ $position_agg == "exp" || $position_agg == "" ]]; then
-            python train_self_supervised.py --data lastfm --use_memory --n_runs 10 --n_epoch 70 --n_layer 2 -pd 64 -ped 128 --scheduler 25 -pat "exp"
+            python train_self_supervised.py --data lastfm --use_memory --n_runs 3 --n_epoch 70 --n_layer 2 -pd 64 -ped 128 --scheduler 25 -pat "exp"
         fi
     elif [[ $data == "wikipedia_fm" ]]; then
         if [[ $position_agg == "mean" ]]; then
-            python train_self_supervised.py -d wikipedia_fm --use_memory --n_runs 10 --n_epoch 70 --n_head 4 --n_layer 2 -pd 64 -ped 128 --scheduler 20 -pat "mean"
+            python train_self_supervised.py -d wikipedia_fm --use_memory --n_runs 3 --n_epoch 70 --n_head 4 --n_layer 2 -pd 64 -ped 128 --scheduler 20 -pat "mean"
         elif [[ $position_agg == "exp" || $position_agg == "" ]]; then
-            python train_self_supervised.py -d wikipedia_fm --use_memory --n_runs 10 --n_epoch 70 --n_head 4 --n_layer 2 -pd 64 -ped 128 --scheduler 20 -pat "exp"
+            python train_self_supervised.py -d wikipedia_fm --use_memory --n_runs 3 --n_epoch 70 --n_head 4 --n_layer 2 -pd 64 -ped 128 --scheduler 20 -pat "exp"
         fi
     elif [[ $data == "reddit_fm" ]]; then
         if [[ $position_agg == "mean" ]]; then
-            python train_self_supervised.py -d reddit_fm --use_memory --n_runs 10 --n_epoch 70 --n_head 4 --n_layer 2 -pd 64 -ped 128 --scheduler 20 -pat "mean"
+            python train_self_supervised.py -d reddit_fm --use_memory --n_runs 3 --n_epoch 70 --n_head 4 --n_layer 2 -pd 64 -ped 128 --scheduler 20 -pat "mean"
         elif [[ $position_agg == "exp" || $position_agg == "" ]]; then
-            python train_self_supervised.py -d reddit_fm --use_memory --n_runs 10 --n_epoch 70 --n_head 4 --n_layer 2 -pd 64 -ped 128 --scheduler 20 -pat "exp"
+            python train_self_supervised.py -d reddit_fm --use_memory --n_runs 3 --n_epoch 70 --n_head 4 --n_layer 2 -pd 64 -ped 128 --scheduler 20 -pat "exp"
         fi
     fi
 }
