@@ -9,39 +9,39 @@ run_command() {
     # Use command based on dataset
     if [[ $data == "wikipedia" ]]; then
         if [[ $position_agg == "mean" ]]; then
-            python train_self_supervised.py --use_memory --n_runs 3 --n_head 4  -pat "mean" --alpha 2 --beta 1
+            python train_self_supervised.py --use_memory --n_runs 3 --n_head 4 --n_layer 2 -pat "mean" --alpha 2 --beta 1
         elif [[ $position_agg == "exp" || $position_agg == "" ]]; then
-            python train_self_supervised.py --use_memory --n_runs 3 --n_head 4  -pat "exp" --alpha 2 --beta 0.0001 --message_function "mlp"
+            python train_self_supervised.py --use_memory --n_runs 3 --n_head 4 --n_layer 2 -pat "exp" --alpha 2 --beta 0.0001
         fi
     elif [[ $data == "reddit" ]]; then
         if [[ $position_agg == "mean" ]]; then
-            python train_self_supervised.py -d reddit --use_memory --n_runs 3  --lr 0.00005 --beta 1 --scheduler 25 -pat "mean" -pd 32 -ped 64
+            python train_self_supervised.py -d reddit --use_memory --n_runs 3 --n_layer 2 --lr 0.00005 --beta 0.1 --scheduler 25 -pat "mean"
         elif [[ $position_agg == "exp" || $position_agg == "" ]]; then
-            python train_self_supervised.py -d reddit --use_memory --n_runs 3  --lr 0.00005 --beta 1 --scheduler 25 -pat "exp" -pd 32 -ped 64
+            python train_self_supervised.py -d reddit --use_memory --n_runs 3 --n_layer 2 --lr 0.00005 --beta 0.1 --scheduler 25 -pat "exp"
         fi
     elif [[ $data == "mooc" ]]; then
         if [[ $position_agg == "mean" ]]; then
-            python train_self_supervised.py --data mooc --use_memory --n_runs 3  -pat "mean"
+            python train_self_supervised.py --data mooc --use_memory --n_runs 3 --n_layer 2 -pat "mean"
         elif [[ $position_agg == "exp" || $position_agg == "" ]]; then
-            python train_self_supervised.py --data mooc --use_memory --n_runs 3  -pat "exp"
+            python train_self_supervised.py --data mooc --use_memory --n_runs 3 --n_layer 2 -pat "exp"
         fi
     elif [[ $data == "lastfm" ]]; then
         if [[ $position_agg == "mean" ]]; then
-            python train_self_supervised.py --data lastfm --use_memory --n_runs 3  -pd 64 -ped 128 --scheduler 25 -pat "mean" --beta 1
+            python train_self_supervised.py --data lastfm --use_memory --n_runs 3 --n_layer 2 -pd 64 -ped 128 --scheduler 25 -pat "mean" --beta 1
         elif [[ $position_agg == "exp" || $position_agg == "" ]]; then
-            python train_self_supervised.py --data lastfm --use_memory --n_runs 3  -pd 64 -ped 128 --scheduler 25 -pat "exp" --beta 1
+            python train_self_supervised.py --data lastfm --use_memory --n_runs 3 --n_layer 2 -pd 64 -ped 128 --scheduler 25 -pat "exp" --beta 1
         fi
     elif [[ $data == "wikipedia_fm" ]]; then
         if [[ $position_agg == "mean" ]]; then
-            python train_self_supervised.py -d wikipedia_fm --use_memory --n_runs 3 --n_head 4  -pd 64 -ped 128 --scheduler 20 -pat "mean" --beta 1
+            python train_self_supervised.py -d wikipedia_fm --use_memory --n_runs 3 --n_head 4 --n_layer 2 -pd 64 -ped 128 --scheduler 20 -pat "mean" --beta 1
         elif [[ $position_agg == "exp" || $position_agg == "" ]]; then
-            python train_self_supervised.py -d wikipedia_fm --use_memory --n_runs 3 --n_head 4  -pd 64 -ped 128 --scheduler 20 -pat "exp" --beta 1
+            python train_self_supervised.py -d wikipedia_fm --use_memory --n_runs 3 --n_head 4 --n_layer 2 -pd 64 -ped 128 --scheduler 20 -pat "exp" --beta 1
         fi
     elif [[ $data == "reddit_fm" ]]; then
         if [[ $position_agg == "mean" ]]; then
-            python train_self_supervised.py -d reddit_fm --use_memory --n_runs 3 --n_head 4  -pd 64 -ped 128 --scheduler 20 -pat "mean" --beta 1
+            python train_self_supervised.py -d reddit_fm --use_memory --n_runs 3 --n_head 4 --n_layer 2 -pd 64 -ped 128 --scheduler 20 -pat "mean" --beta 1
         elif [[ $position_agg == "exp" || $position_agg == "" ]]; then
-            python train_self_supervised.py -d reddit_fm --use_memory --n_runs 3 --n_head 4  -pd 64 -ped 128 --scheduler 20 -pat "exp" --beta 1
+            python train_self_supervised.py -d reddit_fm --use_memory --n_runs 3 --n_head 4 --n_layer 2 -pd 64 -ped 128 --scheduler 20 -pat "exp" --beta 1
         fi
     fi
 }
