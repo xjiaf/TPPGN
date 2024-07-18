@@ -49,7 +49,7 @@ class LastMeanPositionMessageAggregator(MessageAggregator):
     for node_id in unique_node_ids:
         if len(messages[node_id]) > 0:
             to_update_node_ids.append(node_id)
-            node_message = messages[node_id][-1][0]
+            node_message = messages[node_id][-1][0][:-self.position_message_dim]
             position_encoding = torch.mean(torch.stack([m[0][-self.position_message_dim:-(self.position_dim+1)]
                                                         +m[0][-(self.position_dim+1):-1]
                                                         for m in messages[node_id]]), dim=0)
@@ -80,7 +80,7 @@ class MeanMeanPositionMessageAggregator(MessageAggregator):
         if len(messages[node_id]) > 0:
             to_update_node_ids.append(node_id)
             unique_messages.append(
-               torch.mean(torch.stack([torch.cat((m[0][:self.position_message_dim],
+               torch.mean(torch.stack([torch.cat((m[0][:-self.position_message_dim],
                                                   m[0][-self.position_message_dim:-(self.position_dim+1)]
                                                   +m[0][-(self.position_dim+1):-1]), dim=0)
                                                   for m in messages[node_id]]), dim=0))
@@ -111,7 +111,7 @@ class LastExponentialPositionMessageAggregator(MessageAggregator):
     for node_id in unique_node_ids:
         if len(messages[node_id]) > 0:
             to_update_node_ids.append(node_id)
-            node_message = messages[node_id][-1][0]
+            node_message = messages[node_id][-1][0][:-self.position_message_dim]
             position_encoding = torch.mean(torch.stack([self.alpha * m[0][-self.position_message_dim:-(self.position_dim+1)]
                                                         *(torch.exp(-torch.relu(self.beta * m[0][-1])))
                                                         +m[0][-(self.position_dim+1):-1]
@@ -153,7 +153,7 @@ class MeanExponentialPositionMessageAggregator(MessageAggregator):
           if len(messages[node_id]) > 0:
             to_update_node_ids.append(node_id)
             unique_messages.append(
-               torch.mean(torch.stack([torch.cat((m[0][:self.position_message_dim],
+               torch.mean(torch.stack([torch.cat((m[0][:-self.position_message_dim],
                                                   self.alpha * m[0][-self.position_message_dim:-(self.position_dim+1)] * \
                                                     (torch.exp(-torch.relu(self.beta * m[0][-1]))) + \
                                                       m[0][-(self.position_dim+1):-1]), dim=0)

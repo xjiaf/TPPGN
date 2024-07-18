@@ -28,7 +28,7 @@ class PositionMemoryUpdater(MemoryUpdater):
 
     # updated_memory = self.memory_updater(unique_messages, memory)
     updated_node_memory = self.memory_updater(unique_messages[:, :self.message_dimension], memory[:, :self.memory_dimension])
-    updated_memory = torch.cat((updated_node_memory, memory[:, self.memory_dimension:]), dim=1)
+    updated_memory = torch.cat((updated_node_memory, unique_messages[:, self.message_dimension:]), dim=1)
 
     self.memory.set_memory(unique_node_ids, updated_memory)
 
@@ -44,7 +44,7 @@ class PositionMemoryUpdater(MemoryUpdater):
     updated_node_memory = self.memory_updater(unique_messages[:, :self.message_dimension],
                                               updated_memory[unique_node_ids][:, :self.memory_dimension])
     updated_memory[unique_node_ids] = torch.cat((
-      updated_node_memory, updated_memory[unique_node_ids][:, self.memory_dimension:]), dim=1)
+      updated_node_memory, unique_messages[:, self.message_dimension:]), dim=1)
 
     updated_last_update = self.memory.last_update.data.clone()
     updated_last_update[unique_node_ids] = timestamps
