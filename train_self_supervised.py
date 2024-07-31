@@ -69,7 +69,7 @@ parser.add_argument('--dyrep', action='store_true',
 
 parser.add_argument('--alpha', type=float, default=2, help='Step value for the position passing step')
 parser.add_argument('--beta', type=float, default=0.1, help='Initial value for the beta parameter')
-parser.add_argument('--positon_aggregator_type', '-pat', type=str, default="exp", choices=["mean", "exp"],
+parser.add_argument('--positon_aggregator_type', '-pat', type=str, default="exp", choices=["sum", "exp"],
                     help='Type of position aggregator')
 parser.add_argument('--position_dim', "-pd", type=int, default=4, help='Dimensions of the position encoding')
 parser.add_argument('--position_embedding_dim', '-ped', type=int, default=12, help='Dimensions of the position decoding')

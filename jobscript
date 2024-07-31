@@ -8,38 +8,38 @@ run_command() {
 
     # Use command based on dataset
     if [[ $data == "wikipedia" ]]; then
-        if [[ $position_agg == "mean" ]]; then
-            python train_self_supervised.py --use_memory --n_runs 3 --n_head 4 --n_layer 2 -pat "mean" --alpha 2 --beta 1
+        if [[ $position_agg == "sum" ]]; then
+            python train_self_supervised.py --use_memory --n_runs 3 --n_head 4 --n_layer 2 -pat "sum" --alpha 2 --beta 1
         elif [[ $position_agg == "exp" || $position_agg == "" ]]; then
-            python train_self_supervised.py --use_memory --n_runs 3 --n_head 4 --n_layer 2 -pat "exp" --alpha 2 --beta 0.0001
+            python train_self_supervised.py --use_memory --n_runs 3 --n_head 4 --n_layer 2 -pat "exp" --alpha 2 --beta 0.1
         fi
     elif [[ $data == "reddit" ]]; then
-        if [[ $position_agg == "mean" ]]; then
-            python train_self_supervised.py -d reddit --use_memory --n_runs 3 --n_layer 2 --lr 0.00005 --beta 0.1 --scheduler 25 -pat "mean"
+        if [[ $position_agg == "sum" ]]; then
+            python train_self_supervised.py -d reddit --use_memory --n_runs 3 --n_layer 2 --lr 0.00005 --beta 0.1 --scheduler 25 -pat "sum"
         elif [[ $position_agg == "exp" || $position_agg == "" ]]; then
             python train_self_supervised.py -d reddit --use_memory --n_runs 3 --n_layer 2 --lr 0.00005 --beta 0.1 --scheduler 25 -pat "exp"
         fi
     elif [[ $data == "mooc" ]]; then
-        if [[ $position_agg == "mean" ]]; then
-            python train_self_supervised.py --data mooc --use_memory --n_runs 3 --n_layer 2 -pat "mean"
+        if [[ $position_agg == "sum" ]]; then
+            python train_self_supervised.py --data mooc --use_memory --n_runs 3 --n_layer 2 -pat "sum"
         elif [[ $position_agg == "exp" || $position_agg == "" ]]; then
             python train_self_supervised.py --data mooc --use_memory --n_runs 3 --n_layer 2 -pat "exp"
         fi
     elif [[ $data == "lastfm" ]]; then
-        if [[ $position_agg == "mean" ]]; then
-            python train_self_supervised.py --data lastfm --use_memory --n_runs 3 --n_layer 2 -pd 64 -ped 128 --scheduler 25 -pat "mean" --beta 1
+        if [[ $position_agg == "sum" ]]; then
+            python train_self_supervised.py --data lastfm --use_memory --n_runs 3 --n_layer 2 -pd 64 -ped 128 --scheduler 25 -pat "sum" --beta 1
         elif [[ $position_agg == "exp" || $position_agg == "" ]]; then
             python train_self_supervised.py --data lastfm --use_memory --n_runs 3 --n_layer 2 -pd 64 -ped 128 --scheduler 25 -pat "exp" --beta 1
         fi
     elif [[ $data == "wikipedia_fm" ]]; then
-        if [[ $position_agg == "mean" ]]; then
-            python train_self_supervised.py -d wikipedia_fm --use_memory --n_runs 3 --n_head 4 --n_layer 2 -pd 64 -ped 128 --scheduler 20 -pat "mean" --beta 1
+        if [[ $position_agg == "sum" ]]; then
+            python train_self_supervised.py -d wikipedia_fm --use_memory --n_runs 3 --n_head 4 --n_layer 2 -pd 64 -ped 128 --scheduler 20 -pat "sum" --beta 1
         elif [[ $position_agg == "exp" || $position_agg == "" ]]; then
             python train_self_supervised.py -d wikipedia_fm --use_memory --n_runs 3 --n_head 4 --n_layer 2 -pd 64 -ped 128 --scheduler 20 -pat "exp" --beta 1
         fi
     elif [[ $data == "reddit_fm" ]]; then
-        if [[ $position_agg == "mean" ]]; then
-            python train_self_supervised.py -d reddit_fm --use_memory --n_runs 3 --n_head 4 --n_layer 2 -pd 64 -ped 128 --scheduler 20 -pat "mean" --beta 1
+        if [[ $position_agg == "sum" ]]; then
+            python train_self_supervised.py -d reddit_fm --use_memory --n_runs 3 --n_head 4 --n_layer 2 -pd 64 -ped 128 --scheduler 20 -pat "sum" --beta 1
         elif [[ $position_agg == "exp" || $position_agg == "" ]]; then
             python train_self_supervised.py -d reddit_fm --use_memory --n_runs 3 --n_head 4 --n_layer 2 -pd 64 -ped 128 --scheduler 20 -pat "exp" --beta 1
         fi
