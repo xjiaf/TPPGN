@@ -76,10 +76,9 @@ class MeanSumPositionMessageAggregator(MessageAggregator):
 
     to_update_node_ids = []
 
-    node_message = []
-    position_encoding = []
-
     for node_id in unique_node_ids:
+        node_message = []
+        position_encoding = []
         if len(messages[node_id]) > 0:
             to_update_node_ids.append(node_id)
             self_position_encoding = messages[node_id][-1][0][-(self.position_dim+1):-1]
@@ -154,10 +153,10 @@ class MeanExponentialPositionMessageAggregator(MessageAggregator):
         unique_timestamps = []
 
         to_update_node_ids = []
-        node_message = []
-        position_encoding = []
 
         for node_id in unique_node_ids:
+          node_message = []
+          position_encoding = []
           if len(messages[node_id]) > 0:
             to_update_node_ids.append(node_id)
             self_position_encoding = messages[node_id][-1][0][-(self.position_dim+1):-1]
