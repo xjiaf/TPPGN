@@ -186,13 +186,13 @@ class PositionAttentionEmbedding(GraphEmbedding):
 
 
       # Integrated position embedding functionality
-      self.position_decoder = nn.Sequential(
-        nn.Linear(position_dim, position_dim * 2),
-        nn.ReLU(),
-        nn.Linear(position_dim * 2, position_embedding_dim),
-        # nn.ReLU(),
-        # nn.Linear(position_embedding_dim // 2, position_embedding_dim)
-      )
+      # self.position_decoder = nn.Sequential(
+      #   nn.Linear(position_dim, position_dim * 2),
+      #   nn.ReLU(),
+      #   nn.Linear(position_dim * 2, position_embedding_dim),
+      #   # nn.ReLU(),
+      #   # nn.Linear(position_embedding_dim // 2, position_embedding_dim)
+      # )
 
   def compute_embedding(self, memory, source_nodes, timestamps, n_layers,
                         n_neighbors=20, time_diffs=None, use_time_proj=True):
@@ -211,7 +211,8 @@ class PositionAttentionEmbedding(GraphEmbedding):
 
     if self.use_memory:
       source_node_features = memory[source_nodes, :self.n_node_features] + source_node_features
-      source_position_decoding = self.position_decoder(memory[source_nodes, self.n_node_features:])
+      # source_position_decoding = self.position_decoder(memory[source_nodes, self.n_node_features:])
+      source_position_decoding = memory[source_nodes, self.n_node_features:]
 
     source_node_features = torch.cat([source_node_features,
                                       source_position_decoding], dim=1)
