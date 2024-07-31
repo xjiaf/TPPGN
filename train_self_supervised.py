@@ -73,7 +73,8 @@ parser.add_argument('--positon_aggregator_type', '-pat', type=str, default="exp"
                     help='Type of position aggregator')
 parser.add_argument('--position_dim', "-pd", type=int, default=4, help='Dimensions of the position encoding')
 parser.add_argument('--position_embedding_dim', '-ped', type=int, default=12, help='Dimensions of the position decoding')
-parser.add_argument('--scheduler', type=int, default=20, help='Step size for the scheduler')
+parser.add_argument('--scheduler', type=int, default=10, help='Step size for the scheduler')
+parser.add_argument('--gamma', type=float, default=0.5, help='Gamma for the scheduler')
 
 
 def get_git_revision_hash():
@@ -198,7 +199,7 @@ try:
                 position_embedding_dim=POSITION_EMBEDDING_DIM)
     criterion = torch.nn.BCELoss()
     optimizer = torch.optim.Adam(tgn.parameters(), lr=LEARNING_RATE)
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=LRSTEP, gamma=0.1)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=LRSTEP, gamma=args.gamma)
     tgn = tgn.to(device)
 
     num_instance = len(train_data.sources)
