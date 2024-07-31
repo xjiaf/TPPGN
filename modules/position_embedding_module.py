@@ -165,11 +165,15 @@ class PositionAttentionEmbedding(GraphEmbedding):
                                                       n_heads, dropout,
                                                       use_memory)
 
-      self.linear_1 = torch.nn.ModuleList([torch.nn.Linear(n_node_features + position_embedding_dim,
+      # self.linear_1 = torch.nn.ModuleList([torch.nn.Linear(n_node_features + position_embedding_dim,
+      #                                                      embedding_dimension) for _ in range(n_layers)])
+      self.linear_1 = torch.nn.ModuleList([torch.nn.Linear(n_node_features + position_dim,
                                                            embedding_dimension) for _ in range(n_layers)])
       self.linear_11 = torch.nn.ModuleList([torch.nn.Linear(embedding_dimension, embedding_dimension)
                                             for _ in range(n_layers)])
-      self.linear_2 = torch.nn.ModuleList([torch.nn.Linear(n_node_features + position_embedding_dim,
+      # self.linear_2 = torch.nn.ModuleList([torch.nn.Linear(n_node_features + position_embedding_dim,
+      #                                                      embedding_dimension) for _ in range(n_layers)])
+      self.linear_2 = torch.nn.ModuleList([torch.nn.Linear(n_node_features + position_dim,
                                                            embedding_dimension) for _ in range(n_layers)])
       self.linear_22 = torch.nn.ModuleList([torch.nn.Linear(embedding_dimension, embedding_dimension)
                                             for _ in range(n_layers)])
