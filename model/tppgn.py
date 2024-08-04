@@ -57,6 +57,9 @@ class TPPGN(torch.nn.Module):
     self.std_time_shift_dst = std_time_shift_dst
 
     self.position_dim = position_dim
+    self.positon_aggregator_type = positon_aggregator_type
+    self.alpha = alpha
+    self.beta = beta
 
     if self.use_memory:
       self.memory_dimension = memory_dimension
@@ -71,7 +74,7 @@ class TPPGN(torch.nn.Module):
                            device=device)
       self.message_aggregator = get_position_message_aggregator(message_aggregator_type=aggregator_type,
                                                                 device=device,
-                                                                position_aggregator_type=positon_aggregator_type,
+                                                                position_aggregator_type="sum",
                                                                 position_dim=position_dim,
                                                                 alpha=alpha, beta=beta)
       self.message_function = get_position_message_function(module_type=message_function,
@@ -193,16 +196,28 @@ class TPPGN(torch.nn.Module):
         # Remove messages for the positives since we have already updated the memory using them
         self.memory.clear_messages(positives)
 
-      unique_sources, source_id_to_messages = self.get_raw_messages(source_nodes,
-                                                                    source_node_embedding,
-                                                                    destination_nodes,
-                                                                    destination_node_embedding,
-                                                                    edge_times, edge_idxs)
-      unique_destinations, destination_id_to_messages = self.get_raw_messages(destination_nodes,
-                                                                              destination_node_embedding,
-                                                                              source_nodes,
-                                                                              source_node_embedding,
-                                                                              edge_times, edge_idxs)
+      if self.positon_aggregator_type == "sum":
+        unique_sources, source_id_to_messages = self.get_raw_messages(source_nodes,
+                                                                      source_node_embedding,
+                                                                      destination_nodes,
+                                                                      destination_node_embedding,
+                                                                      edge_times, edge_idxs)
+        unique_destinations, destination_id_to_messages = self.get_raw_messages(destination_nodes,
+                                                                                destination_node_embedding,
+                                                                                source_nodes,
+                                                                                source_node_embedding,
+                                                                                edge_times, edge_idxs)
+      elif self.positon_aggregator_type == "exp":
+        unique_sources, source_id_to_messages = self.get_raw_exp_messages(source_nodes,
+                                                                      source_node_embedding,
+                                                                      destination_nodes,
+                                                                      destination_node_embedding,
+                                                                      edge_times, edge_idxs)
+        unique_destinations, destination_id_to_messages = self.get_raw_exp_messages(destination_nodes,
+                                                                                destination_node_embedding,
+                                                                                source_nodes,
+                                                                                source_node_embedding,
+                                                                                edge_times, edge_idxs)
       if self.memory_update_at_start:
         self.memory.store_raw_messages(unique_sources, source_id_to_messages)
         self.memory.store_raw_messages(unique_destinations, destination_id_to_messages)
@@ -292,6 +307,41 @@ class TPPGN(torch.nn.Module):
     source_time_delta_encoding = self.time_encoder(source_time_delta.unsqueeze(dim=1)).view(len(
       source_nodes), -1)
     source_time_delta = source_time_delta.unsqueeze(dim=1).view(len(source_nodes), -1)
+
+    destination_position_encoding = destination_position_memory + \
+      self.position_encoder(torch.LongTensor(destination_nodes).to(self.device))
+    source_message = torch.cat([source_node_memory, destination_node_memory, edge_features, source_time_delta_encoding,
+                                source_position_memory, destination_position_encoding, source_time_delta], dim=1)
+
+    messages = defaultdict(list)
+    unique_sources = np.unique(source_nodes)
+
+    for i in range(len(source_nodes)):
+      messages[source_nodes[i]].append((source_message[i], edge_times[i]))
+
+    return unique_sources, messages
+
+  def get_raw_exp_messages(self, source_nodes, source_node_embedding, destination_nodes,
+                      destination_node_embedding, edge_times, edge_idxs):
+    edge_times = torch.from_numpy(edge_times).float().to(self.device)
+    edge_features = self.edge_raw_features[edge_idxs]
+
+    source_memory = self.memory.get_memory(source_nodes) if not \
+      self.use_source_embedding_in_message else source_node_embedding
+    destination_memory = self.memory.get_memory(destination_nodes) if \
+      not self.use_destination_embedding_in_message else destination_node_embedding
+
+    source_node_memory = source_memory[:, :-self.position_dim]
+    destination_node_memory = destination_memory[:, :-self.position_dim]
+    source_position_memory = source_memory[:, -self.position_dim:]
+    destination_position_memory = destination_memory[:, -self.position_dim:]
+
+    source_time_delta = edge_times - self.memory.last_update[source_nodes]
+    source_time_delta_encoding = self.time_encoder(source_time_delta.unsqueeze(dim=1)).view(len(
+      source_nodes), -1)
+    source_time_delta = source_time_delta.unsqueeze(dim=1).view(len(source_nodes), -1)
+
+    source_position_memory = self.alpha * source_position_memory * (torch.exp(-torch.relu(self.beta * source_time_delta)))
 
     destination_position_encoding = destination_position_memory + \
       self.position_encoder(torch.LongTensor(destination_nodes).to(self.device))

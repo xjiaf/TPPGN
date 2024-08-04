@@ -166,14 +166,8 @@ class MeanExponentialPositionMessageAggregator(MessageAggregator):
                                         (torch.exp(-torch.relu(self.beta * m[0][-1]))))
             node_message = torch.mean(torch.stack(node_message), dim=0)
             position_encoding = torch.sum(torch.stack(position_encoding), dim=0) + self_position_encoding
-            unique_messages.append(torch.cat((node_message, position_encoding)))
 
-            # unique_messages.append(
-            #    torch.mean(torch.stack([torch.cat((m[0][:-self.position_message_dim],
-            #                                       self.alpha * m[0][-self.position_message_dim:-(self.position_dim+1)] * \
-            #                                         (torch.exp(-torch.relu(self.beta * m[0][-1]))) + \
-            #                                           m[0][-(self.position_dim+1):-1]), dim=0)
-            #                                       for m in messages[node_id]]), dim=0))
+            unique_messages.append(torch.cat((node_message, position_encoding)))
             unique_timestamps.append(messages[node_id][-1][1])
 
         unique_messages = torch.stack(unique_messages) if len(to_update_node_ids) > 0 else []
