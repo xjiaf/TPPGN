@@ -310,7 +310,7 @@ class ComplexPositionAttentionEmbedding(GraphEmbedding):
                                                       n_heads, dropout,
                                                       use_memory)
 
-      self.linear_1 = torch.nn.ModuleList([torch.nn.Linear(n_node_features + position_embedding_dim,
+      self.linear_1 = torch.nn.ModuleList([torch.nn.Linear(n_node_features + position_embedding_dim*2,
                                                            embedding_dimension) for _ in range(n_layers)])
       # self.linear_1 = torch.nn.ModuleList([torch.nn.Linear(n_node_features + position_dim,
       #                                                      embedding_dimension) for _ in range(n_layers)])
