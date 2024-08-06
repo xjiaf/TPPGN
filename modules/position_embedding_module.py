@@ -215,8 +215,8 @@ class PositionAttentionEmbedding(GraphEmbedding):
 
     if self.use_memory:
       source_node_features = memory[source_nodes, :self.n_node_features] + source_node_features
-      # source_position_decoding = self.position_decoder(memory[source_nodes, self.n_node_features:])
-      source_position_decoding = memory[source_nodes, self.n_node_features:]
+      source_position_decoding = self.position_decoder(memory[source_nodes, self.n_node_features:])
+      # source_position_decoding = memory[source_nodes, self.n_node_features:]
 
     source_node_features = torch.cat([source_node_features,
                                       source_position_decoding], dim=1)
