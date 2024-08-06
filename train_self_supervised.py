@@ -40,8 +40,9 @@ parser.add_argument('--backprop_every', type=int, default=1,
                     help='Every how many batches to backprop')
 parser.add_argument('--use_memory', action='store_true',
                     help='Whether to augment the model with a node memory')
-parser.add_argument('--embedding_module', '-em',type=str, default="position_attn",
-                    choices=["position_attn", "position_sum"],
+
+parser.add_argument('--embedding_module', '-em', type=str, default="position_attn",
+                    choices=["position_attn", "complex_position_attn"],
                     help='Type of embedding module')
 parser.add_argument('--message_function', type=str, default="identity", choices=["mlp", "identity"],
                     help='Type of message function')
@@ -74,7 +75,7 @@ parser.add_argument('--positon_aggregator_type', '-pat', type=str, default="exp"
 parser.add_argument('--position_dim', "-pd", type=int, default=4, help='Dimensions of the position encoding')
 parser.add_argument('--position_embedding_dim', '-ped', type=int, default=12, help='Dimensions of the position decoding')
 parser.add_argument('--scheduler', type=int, default=10, help='Step size for the scheduler')
-parser.add_argument('--gamma', type=float, default=0.5, help='Gamma for the scheduler')
+parser.add_argument('--gamma', type=float, default=0.1, help='Gamma for the scheduler')
 
 
 def get_git_revision_hash():
