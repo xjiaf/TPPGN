@@ -1,0 +1,45 @@
+#!/bin/bash --login
+#$ -cwd
+#$ -l nvidia_v100            # Can instead use 'nvidia_a100' for the A100 GPUs (if permitted!)
+
+run_command() {
+    local data=$1
+    local pd=$2
+    local alpha
+    local beta
+    local ped=$((pd * 3))
+
+    # Iterate over alpha and beta values
+    for alpha in 1 2; do
+        for beta in 0.1 1; do
+            # Update the prefix to reflect current hyperparameter settings
+            local prefix="${data}-pd${pd}-alpha${alpha}-beta${beta}"
+
+            # Command execution with current hyperparameters
+            python train_self_supervised.py -d ${data} --use_memory --n_runs 2 --n_head 4 --n_layer 2 -pat "exp" --scheduler 15 --alpha ${alpha} --beta ${beta} -pd ${pd} -ped ${ped} -prefix "${prefix}"
+        done
+    done
+}
+
+module load libs/cuda/11.7.0
+
+# Copy a directory of files from scratch to the GPU node's local NVMe storage
+cp -r ~/scratch/papers/TPPGN/ $TMPDIR
+
+# Process the data with a GPU app, from within the local NVMe storage area
+cd $TMPDIR/TPPGN/
+
+run_command $1 $2
+
+
+# Copy the results back to the main scratch area
+rsync -av $TMPDIR/TPPGN/log/ ~/scratch/papers/TPPGN/log/
+rsync -av $TMPDIR/TPPGN/results/ ~/scratch/papers/TPPGN/results/
+rsync -av $TMPDIR/TPPGN/saved_checkpoints/ ~/scratch/papers/TPPGN/saved_checkpoints/
+rsync -av $TMPDIR/TPPGN/saved_models/ ~/scratch/papers/TPPGN/saved_models/
+
+# The batch system will automatically delete the contents of $TMPDIR at the end of your job.
+
+sleep 3
+#$ -m ea
+#$ -M jiafeng.xiong@manchester.ac.uk     # Send email when finished.
