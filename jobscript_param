@@ -16,7 +16,7 @@ run_command() {
             local prefix="${data}-pd${pd}-alpha${alpha}-beta${beta}"
 
             # Command execution with current hyperparameters
-            python train_self_supervised.py -d ${data} --use_memory --n_runs 2 --n_head 4 --n_layer 2 -pat "exp" --scheduler 15 --alpha ${alpha} --beta ${beta} -pd ${pd} -ped ${ped} -prefix "${prefix}"
+            python train_self_supervised.py -d ${data} --use_memory --n_runs 2 --n_head 4 --n_layer 2 -pat "exp" --scheduler 15 --alpha ${alpha} --beta ${beta} -pd ${pd} -ped ${ped} --prefix "${prefix}"
         done
     done
 }
