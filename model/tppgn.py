@@ -196,7 +196,7 @@ class TPPGN(torch.nn.Module):
         # Remove messages for the positives since we have already updated the memory using them
         self.memory.clear_messages(positives)
 
-      if self.positon_aggregator_type == "sum":
+      if self.positon_aggregator_type == "sum" or self.positon_aggregator_type == "mean":
         unique_sources, source_id_to_messages = self.get_raw_messages(source_nodes,
                                                                       source_node_embedding,
                                                                       destination_nodes,
