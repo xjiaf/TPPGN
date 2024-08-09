@@ -258,8 +258,13 @@ try:
           tgn = tgn.train()
           pos_prob, neg_prob = tgn.compute_edge_probabilities(sources_batch, destinations_batch, negatives_batch,
                                                               timestamps_batch, edge_idxs_batch, NUM_NEIGHBORS)
-
-          loss += criterion(pos_prob.squeeze(), pos_label) + criterion(neg_prob.squeeze(), neg_label)
+          try:
+            loss += criterion(pos_prob.squeeze(), pos_label) + criterion(neg_prob.squeeze(), neg_label)
+          except RuntimeError:
+            logger.error(f"Error at epoch {epoch} batch {batch_idx}")
+            logger.error(f"pos_prob: {pos_prob}")
+            logger.error(f"neg_prob: {neg_prob}")
+            raise
 
         loss /= args.backprop_every
 

@@ -300,7 +300,7 @@ class TPPGN(torch.nn.Module):
 
     source_node_memory = source_memory[:, :-self.position_dim]
     destination_node_memory = destination_memory[:, :-self.position_dim]
-    source_position_memory = source_memory[:, -self.position_dim:]
+    source_position_memory = source_memory[:, -self.position_dim:] * 0.0001
     destination_position_memory = destination_memory[:, -self.position_dim:]
 
     source_time_delta = edge_times - self.memory.last_update[source_nodes]
@@ -308,8 +308,8 @@ class TPPGN(torch.nn.Module):
       source_nodes), -1)
     source_time_delta = source_time_delta.unsqueeze(dim=1).view(len(source_nodes), -1)
 
-    destination_position_encoding = destination_position_memory + \
-      self.position_encoder(torch.LongTensor(destination_nodes).to(self.device))
+    destination_position_encoding = (destination_position_memory + \
+      self.position_encoder(torch.LongTensor(destination_nodes).to(self.device))) * 0.0001
     source_message = torch.cat([source_node_memory, destination_node_memory, edge_features, source_time_delta_encoding,
                                 source_position_memory, destination_position_encoding, source_time_delta], dim=1)
 
