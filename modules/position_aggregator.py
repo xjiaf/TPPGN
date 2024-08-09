@@ -176,6 +176,36 @@ class MeanExponentialPositionMessageAggregator(MessageAggregator):
         return to_update_node_ids, unique_messages, unique_timestamps
 
 
+class LastMeanPositionMessageAggregator(MessageAggregator):
+  def __init__(self, device, position_dim):
+    super(LastMeanPositionMessageAggregator, self).__init__(device)
+    self.position_dim = position_dim
+    self.position_message_dim = 2 * position_dim + 1
+
+  def aggregate(self, node_ids, messages):
+    """Only keep the last message for each node"""
+    unique_node_ids = np.unique(node_ids)
+    unique_messages = []
+    unique_timestamps = []
+
+    to_update_node_ids = []
+
+    for node_id in unique_node_ids:
+        if len(messages[node_id]) > 0:
+            to_update_node_ids.append(node_id)
+            node_message = messages[node_id][-1][0][:-self.position_message_dim]
+            self_position_encoding = messages[node_id][-1][0][-(self.position_dim+1):-1]
+            position_encoding = torch.mean(torch.stack([m[0][-self.position_message_dim:-(self.position_dim+1)]
+                                                        for m in messages[node_id]]), dim=0) + self_position_encoding
+            unique_messages.append(torch.cat((node_message, position_encoding)))
+            unique_timestamps.append(messages[node_id][-1][1])
+
+    unique_messages = torch.stack(unique_messages) if len(to_update_node_ids) > 0 else []
+    unique_timestamps = torch.stack(unique_timestamps) if len(to_update_node_ids) > 0 else []
+
+    return to_update_node_ids, unique_messages, unique_timestamps
+
+
 def get_position_message_aggregator(message_aggregator_type, device, position_aggregator_type,
                                     position_dim, alpha=2, beta=1.0):
   if message_aggregator_type == "mean" and position_aggregator_type == "exp":
@@ -192,5 +222,7 @@ def get_position_message_aggregator(message_aggregator_type, device, position_ag
     return MeanSumPositionMessageAggregator(device=device, position_dim=position_dim)
   elif message_aggregator_type == "last" and position_aggregator_type == "sum":
     return LastSumPositionMessageAggregator(device=device, position_dim=position_dim)
+  elif message_aggregator_type == "last" and position_aggregator_type == "mean":
+    return LastMeanPositionMessageAggregator(device=device, position_dim=position_dim)
   else:
     raise ValueError(f"Message aggregator {message_aggregator_type} not recognized.")

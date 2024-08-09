@@ -8,39 +8,39 @@ run_command() {
 
     # Use command based on dataset
     if [[ $data == "wikipedia" ]]; then
-        if [[ $position_agg == "sum" ]]; then
-            python train_self_supervised.py --use_memory --n_runs 2 --n_head 4 --n_layer 2 -pat "sum" --alpha 2 --beta 0.1 --scheduler 15 --gamma 0.1
+        if [[ $position_agg == "mean" ]]; then
+            python train_self_supervised.py --use_memory --n_runs 2 --n_head 4 --n_layer 2 -pat "mean" --alpha 2 --beta 0.1 --scheduler 15 --gamma 0.1
         elif [[ $position_agg == "exp" || $position_agg == "" ]]; then
             python train_self_supervised.py --use_memory --n_runs 2 --n_head 4 --n_layer 2 -pat "exp" --alpha 2 --beta 0.1 --scheduler 15 --gamma 0.1
             # python train_self_supervised.py --use_memory --n_runs 2 --n_head 4 --n_layer 2 -pat "exp" --alpha 2 --beta 0.05 --lr 0.00001 --scheduler 15 --gamma 0.1 -pd 8 --n_epoch 50
         fi
     elif [[ $data == "reddit" ]]; then
-        if [[ $position_agg == "sum" ]]; then
-            python train_self_supervised.py -d reddit --use_memory --n_runs 2 --n_layer 2 -pat "sum" --lr 0.00005 --alpha 2 --beta 0.1 --scheduler 15
+        if [[ $position_agg == "mean" ]]; then
+            python train_self_supervised.py -d reddit --use_memory --n_runs 2 --n_layer 2 -pat "mean" --lr 0.00005 --alpha 2 --beta 0.1 --scheduler 15
         elif [[ $position_agg == "exp" || $position_agg == "" ]]; then
             python train_self_supervised.py -d reddit --use_memory --n_runs 2 --n_layer 2 -pat "exp" --lr 0.00005 --alpha 2 --beta 0.1 --scheduler 15
         fi
     elif [[ $data == "mooc" ]]; then
-        if [[ $position_agg == "sum" ]]; then
-            python train_self_supervised.py --data mooc --use_memory --n_runs 2 --n_layer 2 -pat "sum"
+        if [[ $position_agg == "mean" ]]; then
+            python train_self_supervised.py --data mooc --use_memory --n_runs 2 --n_layer 2 -pat "mean"
         elif [[ $position_agg == "exp" || $position_agg == "" ]]; then
             python train_self_supervised.py --data mooc --use_memory --n_runs 2 --n_layer 2 -pat "exp"
         fi
     elif [[ $data == "lastfm" ]]; then
-        if [[ $position_agg == "sum" ]]; then
-            python train_self_supervised.py --data lastfm --use_memory --n_runs 2 --n_layer 2 -pat "sum" --alpha 2 --beta 1 -pd 12 -ped 36
+        if [[ $position_agg == "mean" ]]; then
+            python train_self_supervised.py --data lastfm --use_memory --n_runs 2 --n_layer 2 -pat "mean" --alpha 2 --beta 1 -pd 12 -ped 36
         elif [[ $position_agg == "exp" || $position_agg == "" ]]; then
             python train_self_supervised.py --data lastfm --use_memory --n_runs 2 --n_layer 2 -pat "exp" --alpha 2 --beta 1 -pd 12 -ped 36
         fi
     elif [[ $data == "wikipedia_fm" ]]; then
-        if [[ $position_agg == "sum" ]]; then
-            python train_self_supervised.py -d wikipedia_fm --use_memory --n_runs 2 --n_head 4 --n_layer 2 -pat "sum" --alpha 2 --beta 1 -pd 12 -ped 36
+        if [[ $position_agg == "mean" ]]; then
+            python train_self_supervised.py -d wikipedia_fm --use_memory --n_runs 2 --n_head 4 --n_layer 2 -pat "mean" --alpha 2 --beta 1 -pd 12 -ped 36
         elif [[ $position_agg == "exp" || $position_agg == "" ]]; then
             python train_self_supervised.py -d wikipedia_fm --use_memory --n_runs 2 --n_head 4 --n_layer 2 -pat "exp" --alpha 2 --beta 1 -pd 12 -ped 36
         fi
     elif [[ $data == "reddit_fm" ]]; then
-        if [[ $position_agg == "sum" ]]; then
-            python train_self_supervised.py -d reddit_fm --use_memory --n_runs 2 --n_head 4 --n_layer 2 --scheduler 15 -pat "sum" --alpha 2 --beta 1 -pd 12 -ped 36
+        if [[ $position_agg == "mean" ]]; then
+            python train_self_supervised.py -d reddit_fm --use_memory --n_runs 2 --n_head 4 --n_layer 2 --scheduler 15 -pat "mean" --alpha 2 --beta 1 -pd 12 -ped 36
         elif [[ $position_agg == "exp" || $position_agg == "" ]]; then
             python train_self_supervised.py -d reddit_fm --use_memory --n_runs 2 --n_head 4 --n_layer 2 --scheduler 15 -pat "exp" --alpha 2 --beta 1 -pd 12 -ped 36
         fi
