@@ -28,21 +28,21 @@ run_command() {
         fi
     elif [[ $data == "lastfm" ]]; then
         if [[ $position_agg == "sum" ]]; then
-            python train_self_supervised.py --data lastfm --use_memory --n_runs 2 --n_layer 2 -pat "sum" --alpha 2 --beta 1 -pd 12 -ped 36
+            python train_self_supervised.py --data lastfm --use_memory --n_runs 2 --n_layer 2 -pat "sum" --alpha 1 --beta 0.1 -pd 20 -ped 60
         elif [[ $position_agg == "exp" || $position_agg == "" ]]; then
-            python train_self_supervised.py --data lastfm --use_memory --n_runs 2 --n_layer 2 -pat "exp" --alpha 2 --beta 1 -pd 12 -ped 36
+            python train_self_supervised.py --data lastfm --use_memory --n_runs 2 --n_layer 2 -pat "exp" --alpha 1 --beta 0.1 -pd 20 -ped 60
         fi
     elif [[ $data == "wikipedia_fm" ]]; then
         if [[ $position_agg == "sum" ]]; then
-            python train_self_supervised.py -d wikipedia_fm --use_memory --n_runs 2 --n_head 4 --n_layer 2 -pat "sum" --alpha 2 --beta 1 -pd 12 -ped 36
+            python train_self_supervised.py -d wikipedia_fm --use_memory --n_runs 2 --n_head 4 --n_layer 2 -pat "sum" --alpha 1 --beta 0.1 -pd 20 -ped 60 --scheduler 15 --gamma 0.1
         elif [[ $position_agg == "exp" || $position_agg == "" ]]; then
-            python train_self_supervised.py -d wikipedia_fm --use_memory --n_runs 2 --n_head 4 --n_layer 2 -pat "exp" --alpha 2 --beta 1 -pd 12 -ped 36
+            python train_self_supervised.py -d wikipedia_fm --use_memory --n_runs 2 --n_head 4 --n_layer 2 -pat "exp" --alpha 1 --beta 0.1 -pd 20 -ped 60 --scheduler 15 --gamma 0.1
         fi
     elif [[ $data == "reddit_fm" ]]; then
         if [[ $position_agg == "sum" ]]; then
-            python train_self_supervised.py -d reddit_fm --use_memory --n_runs 2 --n_head 4 --n_layer 2 --scheduler 15 -pat "sum" --alpha 2 --beta 1 -pd 12 -ped 36
+            python train_self_supervised.py -d reddit_fm --use_memory --n_runs 2 --n_head 4 --n_layer 2 --scheduler 15 -pat "sum" --alpha 1 --beta 0.1 -pd 20 -ped 60
         elif [[ $position_agg == "exp" || $position_agg == "" ]]; then
-            python train_self_supervised.py -d reddit_fm --use_memory --n_runs 2 --n_head 4 --n_layer 2 --scheduler 15 -pat "exp" --alpha 2 --beta 1 -pd 12 -ped 36
+            python train_self_supervised.py -d reddit_fm --use_memory --n_runs 2 --n_head 4 --n_layer 2 --scheduler 15 -pat "exp" --alpha 1 --beta 0.1 -pd 20 -ped 60
         fi
     fi
 }

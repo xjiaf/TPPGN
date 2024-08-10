@@ -74,7 +74,7 @@ parser.add_argument('--positon_aggregator_type', '-pat', type=str, default="exp"
                     help='Type of position aggregator')
 parser.add_argument('--position_dim', "-pd", type=int, default=4, help='Dimensions of the position encoding')
 parser.add_argument('--position_embedding_dim', '-ped', type=int, default=12, help='Dimensions of the position decoding')
-parser.add_argument('--scheduler', type=int, default=10, help='Step size for the scheduler')
+parser.add_argument('--scheduler', type=int, default=15, help='Step size for the scheduler')
 parser.add_argument('--gamma', type=float, default=0.1, help='Gamma for the scheduler')
 
 
