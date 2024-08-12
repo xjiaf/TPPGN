@@ -16,9 +16,9 @@ run_command() {
         fi
     elif [[ $data == "reddit" ]]; then
         if [[ $position_agg == "sum" ]]; then
-            python train_self_supervised.py -d reddit --use_memory --n_runs 2 --n_layer 2 -pat "sum" --lr 0.00005 --scheduler 20 --gamma 0.33 --alpha 2 --beta 0.1 --scheduler 15 --prefix "reddit_sum"
+            python train_self_supervised.py -d reddit --use_memory --n_runs 2 --n_layer 2 -pat "sum" --lr 0.00005 --scheduler 20 --gamma 0.33 --alpha 2 --beta 0.1 --prefix "reddit_sum"
         elif [[ $position_agg == "exp" || $position_agg == "" ]]; then
-            python train_self_supervised.py -d reddit --use_memory --n_runs 2 --n_layer 2 -pat "exp" --lr 0.00005 --scheduler 20 --gamma 0.33 --alpha 2 --beta 0.1 --scheduler 15 --prefix "reddit_exp"
+            python train_self_supervised.py -d reddit --use_memory --n_runs 2 --n_layer 2 -pat "exp" --lr 0.00005 --scheduler 20 --gamma 0.33 --alpha 2 --beta 0.1 --prefix "reddit_exp"
         fi
     elif [[ $data == "lastfm" ]]; then
         if [[ $position_agg == "sum" ]]; then
